@@ -75,6 +75,7 @@ int main(int argc, char* argv[]){
 	printf("k : %d\n", k);
 	print_dupList(dupSet, k);
 	
+	printf("COUNT_FILE : %d\n", COUNT_FILE);
 	gettimeofday(&endTime, NULL);
 	printf("Searching time: %ld:%llu(sec:usec)\n\n", endTime.tv_sec - startTime.tv_sec, (unsigned long long)endTime.tv_usec - (unsigned long long)startTime.tv_usec);
 	printf("fmd5 process is over\n");
@@ -216,9 +217,10 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 			else
 				sprintf(tmp_path, "%s/%s", curr_dir, namelist[i]->d_name);
 			lstat(tmp_path, &st);
-			
-			unsigned char tmp_sc[PATH_MAX];
-			memset(tmp_sc, '\0', PATH_MAX);
+		
+			printf("tmp_path : %s\n", tmp_path);
+			unsigned char tmp_sc[HASH_SIZE];
+			memset(tmp_sc, '\0', HASH_SIZE);
 			FILE* IN;
 			if((IN = fopen(tmp_path, "r")) == NULL){
 				printf("In BFS() fopen() : %s\n", strerror(errno));
@@ -230,8 +232,10 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 			int tmpSize = get_fileSize(tmp_path);
 
 			if(S_ISDIR(st.st_mode)){
-				if((strcmp(tmp_path, "/proc") == 0) || (strcmp(tmp_path, "/run") == 0) || (strcmp(tmp_path, "/sys") == 0) || (strcmp(tmp_path, "/dev") == 0) ||
-						(strcmp(tmp_path, "/usr/src") == 0) || (strcmp(tmp_path, "/usr/lib/modules") == 0) || (strcmp(tmp_path, "//usr/src") == 0)){}
+				if((strcmp(tmp_path, "/proc") == 0) || (strcmp(tmp_path, "/run") == 0) || (strcmp(tmp_path, "/sys") == 0) ||
+						(strcmp(tmp_path, "/dev") == 0) || (strcmp(tmp_path, "/usr/src") == 0)) {
+					continue;
+				}
 				else{
 					enqueue(&dir_queue, tmp_path);
 				}
@@ -271,7 +275,7 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 					}
 				}
 			}
-			else{
+			else if(S_ISCHR(st.st_mode)){
 				continue;
 			}
 		}
@@ -404,9 +408,9 @@ int check_size(char* Min, char* Max, char* tmp_path){
 }
 
 void print_dupList(Queue* reg_dupList, int k){
-	unsigned char tmp[BUF_MAX];
+	unsigned char tmp[HASH_SIZE];
 	for(int i=0; i<k; i++){
-		memset(tmp, '\0', BUF_MAX);
+		memset(tmp, '\0', HASH_SIZE);
 		FILE* IN;
 		if((IN = fopen(reg_dupList[i].front->data, "r")) == NULL){
 			printf("In print_dupList fopen(): %s\n", strerror(errno));
