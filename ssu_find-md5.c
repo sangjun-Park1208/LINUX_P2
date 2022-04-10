@@ -291,9 +291,11 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 		}
 	}
 
-	dupset_Count--;
 
-	
+	if(dupset_Count == 1){} // if dupset_Count is 1, just execute for loop
+	else
+		dupset_Count--;
+
 	int check = 0;
 	for(int i=0; i<dupset_Count; i++){
 		if(regList_queue[i].count == 1){
