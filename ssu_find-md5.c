@@ -17,11 +17,12 @@
 #define ARG_MAX 4
 #define BUFSIZE 1024*16
 #define HASH_SIZE 35
-
+#define QUEUE_SIZE 1000000
 typedef struct Node{
 	char data[PATH_MAX];
 	struct Node* next;
 	unsigned char hash[HASH_SIZE];
+	int size;
 }Node;
 
 typedef struct Queue{
@@ -50,6 +51,7 @@ int MD5_Update(MD5_CTX* c, const void* data, unsigned long len);
 int MD5_Final(unsigned char* md, MD5_CTX* c);
 void print_dupList(Queue* reg_dupList, int k);
 void print_queue(Queue* queue);
+void sort_dupSet(Queue* dupSet, int k);
 
 
 unsigned char hashVal[HASH_SIZE];
@@ -57,8 +59,8 @@ unsigned char hashVal[HASH_SIZE];
 int main(int argc, char* argv[]){
 	struct timeval startTime, endTime;
 	gettimeofday(&startTime, NULL);
-	Queue* RegularFile_dupList = (Queue*)malloc(sizeof(Queue) * 1000000);	
-	Queue* dupSet = (Queue*)malloc(sizeof(Queue) * 1000000);
+	Queue* RegularFile_dupList = (Queue*)malloc(sizeof(Queue) * QUEUE_SIZE);	
+	Queue* dupSet = (Queue*)malloc(sizeof(Queue) * QUEUE_SIZE);
 	char* Ext = (char*)malloc(strlen(argv[0]));
 	char* Min = (char*)malloc(strlen(argv[1]));
 	char* Max = (char*)malloc(strlen(argv[2]));
@@ -73,9 +75,11 @@ int main(int argc, char* argv[]){
 	int k = get_dupList(Ext, Min, Max, Target_dir, RegularFile_dupList, dupSet);
 
 	printf("k : %d\n", k);
+	sort_dupSet(dupSet, k);
 	print_dupList(dupSet, k);
 	
 	printf("COUNT_FILE : %d\n", COUNT_FILE);
+	printf("COUNT : %d\n", COUNT);
 	gettimeofday(&endTime, NULL);
 	printf("Searching time: %ld:%llu(sec:usec)\n\n", endTime.tv_sec - startTime.tv_sec, (unsigned long long)endTime.tv_usec - (unsigned long long)startTime.tv_usec);
 	printf("fmd5 process is over\n");
@@ -86,6 +90,7 @@ int main(int argc, char* argv[]){
 void initQueue(Queue* queue){
 	queue->front = queue->rear = NULL;
 	queue->count = 0;
+	return;
 }
 
 int isEmpty(Queue* queue){
@@ -98,7 +103,7 @@ void enqueue(Queue* queue, char* data){
 
 	FILE* IN;
 	if((IN = fopen(data, "r")) == NULL){
-		fprintf(stderr, "fopen error in md5 hash function\n");
+		fprintf(stderr, "fopen error in enqueue function\n");
 		printf("%s\n", strerror(errno));
 		exit(1);
 	}
@@ -107,6 +112,7 @@ void enqueue(Queue* queue, char* data){
 	md5(IN, hashVal);
 	fclose(IN);
 
+	newNode->size = get_fileSize(data);
 	strcpy(newNode->data, data);
 	strcpy(newNode->hash, hashVal);
 	newNode->next = NULL;
@@ -116,6 +122,7 @@ void enqueue(Queue* queue, char* data){
 		queue->rear->next = newNode;
 	queue->rear = newNode;
 	queue->count++;
+	return;
 }
 
 char* dequeue(Queue* queue, char* data){
@@ -190,6 +197,7 @@ void check_targetDir(char* Ext, char* Target_dir){
 		printf("Extension Error\n");
 		exit(1);
 	}
+	return;
 
 }
 
@@ -198,31 +206,31 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 	int dupset_Count = 0;
 	Queue dir_queue;
 	initQueue(&dir_queue);
-	enqueue(&dir_queue, Target_dir);
+	enqueue(&dir_queue, Target_dir); // make enter while loop condition : set [TARGET_DIRECTORY] into Queue(directory).
 	struct dirent** namelist;
 	struct stat st;
-	char curr_dir[PATH_MAX-256];
+	char curr_dir[PATH_MAX-256]; // to resolve sprintf size warning
 	char tmp_buf[PATH_MAX];
-	while(!isEmpty(&dir_queue)){
+	while(!isEmpty(&dir_queue)){ // while loop condition : if direcory Queue is not empty -> keep going
 		memset(curr_dir, '\0', PATH_MAX);
 		memset(tmp_buf, '\0', PATH_MAX);
-		strcpy(curr_dir, dequeue(&dir_queue, tmp_buf));
-		int fileCnt = scandir(curr_dir, &namelist, NULL, alphasort);
+		strcpy(curr_dir, dequeue(&dir_queue, tmp_buf)); // dequeue directory Queue, copy string to 'curr_dir'
+		int fileCnt = scandir(curr_dir, &namelist, NULL, alphasort); // get every files in current directory
 		for(int i=2; i<fileCnt; i++){
-			if(!strcmp(namelist[i]->d_name, "."))
+			if(!strcmp(namelist[i]->d_name, ".")) // except '.' direcotry
 				continue;
-			if(!strcmp(namelist[i]->d_name, ".."))
+			if(!strcmp(namelist[i]->d_name, "..")) // except '..' directory
 				continue;
-			printf("COUNT_FILE : %d\n", COUNT_FILE++);
-
+//			printf("COUNT_FILE : %d\n", COUNT_FILE++); // for debugging
+			COUNT_FILE++;
 			char tmp_path[PATH_MAX];
 			memset(tmp_path, '\0', PATH_MAX);
-			if(!strcmp(curr_dir, "/"))
+			if(!strcmp(curr_dir, "/")) // if [TARGET_DIRECTORY] is root('/') 
 				sprintf(tmp_path, "%s%s", curr_dir, namelist[i]->d_name);
-			else
+			else // [TARGET_DIRECTORY] is not a root.
 				sprintf(tmp_path, "%s/%s", curr_dir, namelist[i]->d_name);
 			lstat(tmp_path, &st);
-			printf("tmp_path : %s\n", tmp_path);
+//			printf("tmp_path : %s\n", tmp_path); // for debugging
 
 			unsigned char tmp_sc[HASH_SIZE];
 			memset(tmp_sc, '\0', HASH_SIZE);
@@ -232,8 +240,7 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 				printf("tmp_path : %s\n", tmp_path);
 				continue;
 			}
-			if(!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode)){
-				printf("not dir & not reg\n");
+			if(!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode)){ // if not directory & not regular file -> close file and keep going.
 				fclose(IN);
 				continue;
 			}
@@ -243,20 +250,20 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 			int tmpSize = get_fileSize(tmp_path);
 
 			if(S_ISDIR(st.st_mode)){
-				if((strcmp(tmp_path, "/proc") == 0) || (strcmp(tmp_path, "/run") == 0) || (strcmp(tmp_path, "/sys") == 0) ){
+				if((strcmp(tmp_path, "/proc") == 0) || (strcmp(tmp_path, "/run") == 0) || (strcmp(tmp_path, "/sys") == 0) ){ // except /proc, /run, /sys directory
 					continue;
 				}
 				else{
-					enqueue(&dir_queue, tmp_path);
+					enqueue(&dir_queue, tmp_path); // other direcory -> enqueue to Queue(directory)
 				}
 			}
 			else if(S_ISREG(st.st_mode)){
 				int condition = 0;
-				condition += check_ext(Ext, tmp_path);
-				condition += check_size(Min, Max, tmp_path);
+				condition += check_ext(Ext, tmp_path); // if condition == 0 -> meet [FILE_EXTENSION] condition
+				condition += check_size(Min, Max, tmp_path); // if condition == 0 -> meet [MIN], [MAX] condition
 
 				if(condition == 0){
-					if(dupset_Count==0){
+					if(dupset_Count==0){ // if first file -> just enqueue and keep going
 						Queue queue;
 						initQueue(&queue);
 						enqueue(&queue, tmp_path);
@@ -270,8 +277,6 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 
 								enqueue(&regList_queue[j], tmp_path);	
 								printf("COUNT : %d\n", COUNT++);
-//								printf("COUNT_MD5 : %d\n", COUNT_MD5);
-//								print_queue(&regList_queue[j]);
 								isFirst = 0;
 								break;
 							}
@@ -297,7 +302,7 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 		dupset_Count--;
 
 	int check = 0;
-	for(int i=0; i<dupset_Count; i++){
+	for(int i=0; i<dupset_Count; i++){ // extracting specific duplicat_list (node count should more than 2)
 		if(regList_queue[i].count == 1){
 			initQueue(&regList_queue[i]);
 		}
@@ -305,13 +310,13 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 			dupSet[check++] = regList_queue[i];
 		}
 	}
-	return check;
+	return check; // number of duplicate set.
 }
 
 
 
-void md5(FILE* f, unsigned char* hash){
-	COUNT_MD5++;
+void md5(FILE* f, unsigned char* hash){ // 'hash' <- hash value in here
+	COUNT_MD5++; // check number of calls : md5()
 	MD5_CTX c;
 	unsigned char md[MD5_DIGEST_LENGTH];
 	int fd;
@@ -327,11 +332,12 @@ void md5(FILE* f, unsigned char* hash){
 	MD5_Final(&(md[0]), &c);
 	for(int i=0; i<MD5_DIGEST_LENGTH; i++)
 		sprintf(hash+(i*2), "%02x", md[i]);
+	return;
 }
 
 
 
-off_t get_fileSize(char* path){
+off_t get_fileSize(char* path){ // get path from parameter -> return path's(file's) size
 	struct stat st;
 	char buf[PATH_MAX];
 	memset(buf, '\0', PATH_MAX);
@@ -342,18 +348,16 @@ off_t get_fileSize(char* path){
 }
 
 int check_ext(char* Ext, char* tmp_path){
-	if(strcmp(Ext, "*") == 0)
+	if(strcmp(Ext, "*") == 0) // '*' means check every files, no matter what extension is.
 		return 0;
-	else{
-		if(strrchr(tmp_path, '.') == NULL)
+	else{ // some extension is after '*'
+		if(strrchr(tmp_path, '.') == NULL) // if there is no '.' after * -> wrong path
 			return 1;
 
-		printf("&Ext[2] : %s\n", &Ext[2]);
-		printf("strrchr(tmp_path, '.')+1 : %s\n", strrchr(tmp_path, '.')+1);
-		if(!strcmp(&Ext[2], strrchr(tmp_path, '.')+1))
+		if(!strcmp(&Ext[2], strrchr(tmp_path, '.')+1)) // if Ext and tmp_path has same extension -> return 0
 			return 0;
-		else
-			return 1;
+		else // Extension not same -> return 1
+			return 1; 
 	}
 }
 
@@ -361,11 +365,11 @@ int check_size(char* Min, char* Max, char* tmp_path){
 	struct stat st;
 	lstat(tmp_path, &st);
 
-	if((strcmp(Min, "~") == 0) && (strcmp(Max, "~") == 0))
+	if((strcmp(Min, "~") == 0) && (strcmp(Max, "~") == 0)) // if [MIN] == "~" and [MAX] == "~"
 		return 0;
-	else if((strcmp(Min, "~") != 0) && (strcmp(Max, "~") == 0)){
-		int minsize = atoi(Min);
-		if((strstr(Min, "kb") != NULL) || (strstr(Min, "KB") != NULL) || (strstr(Min, "Kb") != NULL))
+	else if((strcmp(Min, "~") != 0) && (strcmp(Max, "~") == 0)){ 
+		int minsize = atoi(Min); // get integer value
+		if((strstr(Min, "kb") != NULL) || (strstr(Min, "KB") != NULL) || (strstr(Min, "Kb") != NULL)) // set unit
 			minsize *= 1000;
 		else if((strstr(Min, "mb") != NULL) || (strstr(Min, "MB") != NULL) || (strstr(Min, "Mb") != NULL))
 			minsize *= 1000000;
@@ -418,7 +422,7 @@ int check_size(char* Min, char* Max, char* tmp_path){
 	return 0;
 }
 
-void print_dupList(Queue* reg_dupList, int k){
+void print_dupList(Queue* reg_dupList, int k){ // print duplicate list -> terminal(stdout)
 	unsigned char tmp[HASH_SIZE];
 	for(int i=0; i<k; i++){
 		memset(tmp, '\0', HASH_SIZE);
@@ -433,8 +437,9 @@ void print_dupList(Queue* reg_dupList, int k){
 		for(int j=0; j<MD5_DIGEST_LENGTH; j++)
 			printf("%02x",tmp[j]);
 		printf(") ----\n");
-		print_queue(&reg_dupList[i]);
+		print_queue(&reg_dupList[i]); // call each set's index(member)
 	}
+	return;
 }
 
 void print_queue(Queue* queue){
@@ -457,10 +462,22 @@ void print_queue(Queue* queue){
 		tmp = tmp->next;
 	}
 	printf("\n");
+	return;
 }
 
 
-
+void sort_dupSet(Queue* dupSet, int k){
+	for(int i=k; i>0; i--){
+		for(int j=0; j<i-1; j++){
+			if(dupSet[j].front->size > dupSet[j+1].front->size){
+				Queue tmpQueuePtr = dupSet[j];
+				dupSet[j] = dupSet[j+1];
+				dupSet[j+1] = tmpQueuePtr;
+			}
+		}
+	}
+	return;
+}
 
 
 
