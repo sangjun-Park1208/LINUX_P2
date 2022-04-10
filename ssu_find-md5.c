@@ -18,11 +18,13 @@
 #define BUFSIZE 1024*16
 #define HASH_SIZE 35
 #define QUEUE_SIZE 1000000
+#define FILE_SIZE 16
+
 typedef struct Node{
 	char data[PATH_MAX];
 	struct Node* next;
 	unsigned char hash[HASH_SIZE];
-	int size;
+	double size;
 }Node;
 
 typedef struct Queue{
@@ -53,6 +55,8 @@ int MD5_Final(unsigned char* md, MD5_CTX* c);
 void print_dupList(Queue* reg_dupList, int k);
 void print_queue(Queue* queue);
 void sort_dupSet(Queue* dupSet, int k);
+void fmd5_delete(void);
+char* toComma(long n, char* fileSize);
 
 
 unsigned char hashVal[HASH_SIZE];
@@ -72,10 +76,8 @@ int main(int argc, char* argv[]){
 	strcpy(Max, argv[2]);
 	strcpy(Target_dir, argv[3]);
 
-//	printf("Ext : %s\nMin : %s\nMax : %s\nTarget_dir : %s\n\n", Ext, Min, Max, Target_dir);
 	int k = get_dupList(Ext, Min, Max, Target_dir, RegularFile_dupList, dupSet);
 
-//	printf("k : %d\n", k);
 	sort_dupSet(dupSet, k);
 	print_dupList(dupSet, k);
 	
@@ -84,6 +86,21 @@ int main(int argc, char* argv[]){
 	printf("DIFF_FILE : %d\n", DIF_FILE); // number of different file count
 	gettimeofday(&endTime, NULL);
 	printf("Searching time: %ld:%llu(sec:usec)\n\n", endTime.tv_sec - startTime.tv_sec, (unsigned long long)endTime.tv_usec - (unsigned long long)startTime.tv_usec);
+	
+// delete option //
+	
+
+
+	
+
+
+
+
+//               // 
+
+
+
+
 	printf("fmd5 process is over\n");
 	exit(0);
 }
@@ -223,7 +240,6 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 				continue;
 			if(!strcmp(namelist[i]->d_name, "..")) // except '..' directory
 				continue;
-//			printf("COUNT_FILE : %d\n", COUNT_FILE++); // for debugging
 			COUNT_FILE++;
 			char tmp_path[PATH_MAX];
 			memset(tmp_path, '\0', PATH_MAX);
@@ -232,14 +248,11 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 			else // [TARGET_DIRECTORY] is not a root.
 				sprintf(tmp_path, "%s/%s", curr_dir, namelist[i]->d_name);
 			lstat(tmp_path, &st);
-//			printf("tmp_path : %s\n", tmp_path); // for debugging
 
 			unsigned char tmp_sc[HASH_SIZE];
 			memset(tmp_sc, '\0', HASH_SIZE);
 			FILE* IN;
 			if((IN = fopen(tmp_path, "r")) == NULL){
-//				printf("In BFS() fopen() : %s\n", strerror(errno));
-//				printf("tmp_path : %s\n", tmp_path);
 				continue;
 			}
 			if(!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode)){ // if not directory & not regular file -> close file and keep going.
@@ -371,7 +384,7 @@ int check_size(char* Min, char* Max, char* tmp_path){
 	if((strcmp(Min, "~") == 0) && (strcmp(Max, "~") == 0)) // if [MIN] == "~" and [MAX] == "~"
 		return 0;
 	else if((strcmp(Min, "~") != 0) && (strcmp(Max, "~") == 0)){ 
-		int minsize = atoi(Min); // get integer value
+		double minsize = atof(Min); // get integer value
 		if((strstr(Min, "kb") != NULL) || (strstr(Min, "KB") != NULL) || (strstr(Min, "Kb") != NULL)) // set unit
 			minsize *= 1000;
 		else if((strstr(Min, "mb") != NULL) || (strstr(Min, "MB") != NULL) || (strstr(Min, "Mb") != NULL))
@@ -385,7 +398,7 @@ int check_size(char* Min, char* Max, char* tmp_path){
 			return 1;
 	}
 	else if((strcmp(Min, "~") == 0) && (strcmp(Max, "~") != 0)){
-		int maxsize = atoi(Max);
+		double maxsize = atoi(Max);
 		if((strstr(Max, "kb") != NULL) || (strstr(Max, "KB") != NULL) || (strstr(Max, "Kb") != NULL))
 			maxsize *= 1000;
 		else if((strstr(Max, "mb") != NULL) || (strstr(Max, "MB") != NULL) || (strstr(Max, "Mb") != NULL))
@@ -399,7 +412,7 @@ int check_size(char* Min, char* Max, char* tmp_path){
 			return 1;
 	}
 	else{
-		int minsize = atoi(Min);
+		double minsize = atof(Min);
 		if((strstr(Min, "kb") != NULL) || (strstr(Min, "KB") != NULL) || (strstr(Min, "Kb") != NULL))
 			minsize *= 1000;
 		else if((strstr(Min, "mb") != NULL) || (strstr(Min, "MB") != NULL) || (strstr(Min, "Mb") != NULL))
@@ -407,7 +420,7 @@ int check_size(char* Min, char* Max, char* tmp_path){
 		else if((strstr(Min, "gb") != NULL) || (strstr(Min, "GB") != NULL) || (strstr(Min, "Gb") != NULL))
 			minsize *= 1000000000;
 		
-		int maxsize = atoi(Max);
+		double maxsize = atof(Max);
 		if((strstr(Max, "kb") != NULL) || (strstr(Max, "KB") != NULL) || (strstr(Max, "Kb") != NULL))
 			maxsize *= 1000;
 		else if((strstr(Max, "mb") != NULL) || (strstr(Max, "MB") != NULL) || (strstr(Max, "Mb") != NULL))
@@ -427,8 +440,10 @@ int check_size(char* Min, char* Max, char* tmp_path){
 
 void print_dupList(Queue* reg_dupList, int k){ // print duplicate list -> terminal(stdout)
 	unsigned char tmp[HASH_SIZE];
+	char fileSize[FILE_SIZE];
 	for(int i=0; i<k; i++){
 		memset(tmp, '\0', HASH_SIZE);
+		memset(fileSize, '\0', FILE_SIZE);
 		FILE* IN;
 		if((IN = fopen(reg_dupList[i].front->data, "r")) == NULL){
 			printf("In print_dupList fopen(): %s\n", strerror(errno));
@@ -436,7 +451,9 @@ void print_dupList(Queue* reg_dupList, int k){ // print duplicate list -> termin
 
 		md5(IN, tmp);
 		fclose(IN);
-		printf("---- Identical files #%d (%ld bytes - ", i+1, get_fileSize(reg_dupList[i].front->data));
+		toComma(reg_dupList[i].front->size, fileSize);
+//		printf("---- Identical files #%d (%ld bytes - ", i+1, get_fileSize(reg_dupList[i].front->data));
+		printf("---- Identical files #%d (%s bytes - ", i+1, fileSize);
 		for(int j=0; j<MD5_DIGEST_LENGTH; j++)
 			printf("%02x",tmp[j]);
 		printf(") ----\n");
@@ -482,6 +499,26 @@ void sort_dupSet(Queue* dupSet, int k){
 	return;
 }
 
+char* toComma(long n, char* com_str){
+	char str[FILE_SIZE];
+//	char com_str[FILE_SIZE];
+
+	sprintf(str, "%ld", n);
+	int len = strlen(str);
+	int mod = len % 3;
+	int id = 0;
+
+	for(int i=0; i<len; i++){
+		if((i!=0) && ((i % 3) == mod))
+			com_str[id++] = ',';
+		com_str[id++] = str[i];
+	}
+	com_str[id] = 0x00;
+	return com_str;
+}
 
 
+void fmd5_delete(){
+
+}
 
