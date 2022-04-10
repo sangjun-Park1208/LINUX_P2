@@ -34,15 +34,41 @@ int main(){
 
 		pid = fork();
 
-		if(pid>0){
-//			printf("parent : argv[0] : %s\n", argv[0]);
-			pid_t waitPID;
-//			printf("parent(main) PID : %d\n", getpid());
-			waitPID = wait(&status);
+		if(pid == 0){
+			if(!strcmp(argv[0], "fmd5")){
+				if(argc != 5){
+					fprintf(stderr, "Usage : fmd5 [FILE_EXTENSION] [MINSIZE] [MAXSIZE] [TARGET_DIRECTORY]\n");
+					continue;
+				}
+				execl("./ssu_find-md5", argv[1], argv[2], argv[3], argv[4], (char*)0);
+			}
 			
+
+			else if(!strcmp(argv[0], "exit")){
+				printf("Prompt End\n");
+				exit(0);
+			}
+
+			else{
+				execl("./ssu_help", argv[1], (char*)0);
+				continue;
+			}
+
+			printf("Child process exit\n");
+			exit(0);
+		}
+		else if(pid>0){
+			pid_t waitPID;
+			waitPID = wait(&status);
+			if(!strcmp(argv[0], "exit"))
+				exit(0);
+			continue;
 			if(waitPID == -1){
 				printf("wait error : errno %d\n", errno);
 			}
+//			else if(WEXITSTATUS(status) == 127){
+//				exit(0);
+//			}
 			else{
 				if(WIFEXITED(status)){
 //					printf("wait : child process exit(normal)\n");
@@ -54,24 +80,6 @@ int main(){
 //			printf("wait : parent(main) process exit\n");
 //			printf("waidPID : %d\n", waitPID);
 
-		}
-		else if(pid == 0){
-			if(argc != 5){
-				fprintf(stderr, "Usage : fmd5 [FILE_EXTENSION] [MINSIZE] [MAXSIZE] [TARGET_DIRECTORY]\n");
-				continue;
-			}
-//			printf("chile process : %d\n", getpid());
-			if(!strcmp(argv[0], "fmd5")){
-//				printf("----fmd5 command exec ---- \n");
-				execl("./ssu_find-md5", argv[1], argv[2], argv[3], argv[4], (char*)0);
-
-			}
-			printf("fmd5 process exit\n");
-			exit(0);
-		}
-		else{
-			fprintf(stderr, "fork error\n");
-			exit(1);
 		}
 
 		break;
