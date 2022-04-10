@@ -33,7 +33,8 @@ typedef struct Queue{
 
 int COUNT_FILE;
 int COUNT_MD5;
-int COUNT;
+int DUP;
+int DIF_FILE;
 void initQueue(Queue* queue);
 int isEmpty(Queue* queue);
 void enqueue(Queue* queue, char* data);
@@ -71,15 +72,16 @@ int main(int argc, char* argv[]){
 	strcpy(Max, argv[2]);
 	strcpy(Target_dir, argv[3]);
 
-	printf("Ext : %s\nMin : %s\nMax : %s\nTarget_dir : %s\n\n", Ext, Min, Max, Target_dir);
+//	printf("Ext : %s\nMin : %s\nMax : %s\nTarget_dir : %s\n\n", Ext, Min, Max, Target_dir);
 	int k = get_dupList(Ext, Min, Max, Target_dir, RegularFile_dupList, dupSet);
 
-	printf("k : %d\n", k);
+//	printf("k : %d\n", k);
 	sort_dupSet(dupSet, k);
 	print_dupList(dupSet, k);
 	
-	printf("COUNT_FILE : %d\n", COUNT_FILE);
-	printf("COUNT : %d\n", COUNT);
+	printf("COUNT_FILE : %d\n", COUNT_FILE); // number of total file count
+	printf("DUP_COUNT : %d\n", DUP); // number of duplicate file count
+	printf("DIFF_FILE : %d\n", DIF_FILE); // number of different file count
 	gettimeofday(&endTime, NULL);
 	printf("Searching time: %ld:%llu(sec:usec)\n\n", endTime.tv_sec - startTime.tv_sec, (unsigned long long)endTime.tv_usec - (unsigned long long)startTime.tv_usec);
 	printf("fmd5 process is over\n");
@@ -236,8 +238,8 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 			memset(tmp_sc, '\0', HASH_SIZE);
 			FILE* IN;
 			if((IN = fopen(tmp_path, "r")) == NULL){
-				printf("In BFS() fopen() : %s\n", strerror(errno));
-				printf("tmp_path : %s\n", tmp_path);
+//				printf("In BFS() fopen() : %s\n", strerror(errno));
+//				printf("tmp_path : %s\n", tmp_path);
 				continue;
 			}
 			if(!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode)){ // if not directory & not regular file -> close file and keep going.
@@ -276,12 +278,13 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 									&& (tmpSize == get_fileSize(regList_queue[j].front->data))){ // if hash value & size is same
 
 								enqueue(&regList_queue[j], tmp_path);	
-								printf("COUNT : %d\n", COUNT++);
+								DUP++;
 								isFirst = 0;
 								break;
 							}
 						}
 						if(isFirst == 1){
+							DIF_FILE++;
 							Queue queue;
 							initQueue(&queue);
 							enqueue(&queue, tmp_path);
