@@ -174,17 +174,22 @@ int get_dupList(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regLis
 
 void check_targetDir(char* Ext, char* Target_dir){
 	struct stat st;
-	if(lstat(Target_dir, &st) < 0) // if (Target_dir != DIRECTORY || Target_dir == !FILE)
+	if(lstat(Target_dir, &st) < 0){ // if (Target_dir != DIRECTORY || Target_dir == !FILE)
+		printf("Not a Directory or file\n");
 		exit(1); // exit fmd5 process
-
-	if(Ext[0] != '*') // Extension must starts with '*'
+	}
+	if(Ext[0] != '*'){ // Extension must starts with '*'
+		printf("Extension Error\n");
 		exit(1); // if not, then exit fmd5 process
-
-	if(Ext[strlen(Ext)-1] == '.') // Extension must ends with '*' or "other _ext"
+	}
+	if(Ext[strlen(Ext)-1] == '.'){ // Extension must ends with '*' or "other _ext"
+		printf("Extension Error\n");
 		exit(1); // if not, then exit fmd5 process
-
-	if(strstr(Ext, ".") == NULL && strlen(Ext) != 1) // if Extension contain '.' , then it's length should bigger than 1
+	}
+	if(strstr(Ext, ".") == NULL && strlen(Ext) != 1){ // if Extension contain '.' , then it's length should bigger than 1
+		printf("Extension Error\n");
 		exit(1);
+	}
 
 }
 
@@ -209,16 +214,16 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 			if(!strcmp(namelist[i]->d_name, ".."))
 				continue;
 			printf("COUNT_FILE : %d\n", COUNT_FILE++);
+
 			char tmp_path[PATH_MAX];
 			memset(tmp_path, '\0', PATH_MAX);
-
 			if(!strcmp(curr_dir, "/"))
 				sprintf(tmp_path, "%s%s", curr_dir, namelist[i]->d_name);
 			else
 				sprintf(tmp_path, "%s/%s", curr_dir, namelist[i]->d_name);
 			lstat(tmp_path, &st);
-		
 			printf("tmp_path : %s\n", tmp_path);
+
 			unsigned char tmp_sc[HASH_SIZE];
 			memset(tmp_sc, '\0', HASH_SIZE);
 			FILE* IN;
@@ -239,7 +244,6 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 
 			if(S_ISDIR(st.st_mode)){
 				if((strcmp(tmp_path, "/proc") == 0) || (strcmp(tmp_path, "/run") == 0) || (strcmp(tmp_path, "/sys") == 0) ){
-//						(strcmp(tmp_path, "/dev") == 0) || (strcmp(tmp_path, "/usr/src") == 0)) {  {
 					continue;
 				}
 				else{
@@ -247,7 +251,6 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 				}
 			}
 			else if(S_ISREG(st.st_mode)){
-//			else if((st.st_mode & S_IFMT) == S_IFREG){
 				int condition = 0;
 				condition += check_ext(Ext, tmp_path);
 				condition += check_size(Min, Max, tmp_path);
@@ -340,13 +343,12 @@ int check_ext(char* Ext, char* tmp_path){
 	if(strcmp(Ext, "*") == 0)
 		return 0;
 	else{
-		char* str;
-		memset(str, '\0', 10);
-		str = strrchr(tmp_path, '.');
-		char* ext;
-		memset(ext, '\0', 10);
-		ext = strrchr(Ext, '.');
-		if(strcmp(str, ext) == 0)
+		if(strrchr(tmp_path, '.') == NULL)
+			return 1;
+
+		printf("&Ext[2] : %s\n", &Ext[2]);
+		printf("strrchr(tmp_path, '.')+1 : %s\n", strrchr(tmp_path, '.')+1);
+		if(!strcmp(&Ext[2], strrchr(tmp_path, '.')+1))
 			return 0;
 		else
 			return 1;
