@@ -19,6 +19,7 @@
 #define HASH_SIZE 35
 #define QUEUE_SIZE 1000000
 #define FILE_SIZE 16
+#define INPUT_MAX 3
 
 typedef struct Node{
 	char data[PATH_MAX];
@@ -37,6 +38,8 @@ int COUNT_FILE;
 int COUNT_MD5;
 int DUP;
 int DIF_FILE;
+
+int split(char* string, char* seperator, char* argv[]);
 void initQueue(Queue* queue);
 int isEmpty(Queue* queue);
 void enqueue(Queue* queue, char* data);
@@ -86,23 +89,72 @@ int main(int argc, char* argv[]){
 	printf("DIFF_FILE : %d\n", DIF_FILE); // number of different file count
 	gettimeofday(&endTime, NULL);
 	printf("Searching time: %ld:%llu(sec:usec)\n\n", endTime.tv_sec - startTime.tv_sec, (unsigned long long)endTime.tv_usec - (unsigned long long)startTime.tv_usec);
-	
+
+
+
 // delete option //
 	
+	char input[BUF_MAX];
+	char* input_v[INPUT_MAX];
+	int input_cnt = 0;
+	while(1){
+		
+		for(int i=0; i<INPUT_MAX; i++)
+			memset(&input_v[i], '\0', sizeof(input_v[i]));
+		
+		printf(">> ");
+		fgets(input, sizeof(input), stdin);
+		input[strlen(input)-1] = '\0';
+		input_cnt = split(input, " ", input_v);
 
+		if(input_cnt == 0){ // press enter
+			continue;
+		}
 
-	
+		if(!strcmp(input_v[0], "exit")){ // press "exit"
+			printf("Back to Prompt\n");
+			exit(0);
+		}
 
+		if(input_cnt != 2 && input_cnt != 3){ // input error : d(3), i(2), f(2), t(2)
+			printf("input error\n");
+			continue;
+		}
 
+		if(!strcmp(input_v[1], "d")){
 
+		}
+		else if(!strcmp(input_v[1], "i")){
 
-//               // 
+		}
+		else if(!strcmp(input_v[1], "f")){
 
+		}
+		else if(!strcmp(input_v[1], "t")){
 
+		}
+		
+		else{
+			printf("input error\n");
+			continue;
+		}
+
+	}
 
 
 	printf("fmd5 process is over\n");
 	exit(0);
+}
+
+int split(char* string, char* seperator, char* argv[]){
+	int argc = 0;
+	char* ptr = NULL;
+	ptr = strtok(string, seperator);
+	while(ptr != NULL){
+		argv[argc++] = ptr;
+		ptr = strtok(NULL, " ");
+	}
+	return argc;
 }
 
 /*** Queue ***/ 
