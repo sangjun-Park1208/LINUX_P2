@@ -134,46 +134,46 @@ char* dequeue(Queue* queue, char* data){
 
 int get_dupList(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet){
 	int dupset_Count = 0; // RegularFile_dupList count => return value
-	
-	check_targetDir(Ext, Target_dir); // check if Target_dir is correct input or not.
-
 	char realPath[PATH_MAX];
 	memset(realPath, '\0', PATH_MAX);
+	if(Target_dir[0] == '~'){
+		if(strlen(Target_dir) > 1){
+			char ptr[PATH_MAX];
+			strcpy(ptr, &Target_dir[2]);
+			sprintf(Target_dir, "%s/%s", "/home/sangjun", ptr);
+			printf("changed Target_dir : %s\n", Target_dir);
+		}
+		else{
+			sprintf(Target_dir, "%s", "/home/sangjun");
+			printf("changed Target_dir : %s\n", Target_dir);
+		}
+	}
+	
+	check_targetDir(Ext, Target_dir); // check if Target_dir is correct input or not.
 
 	if(!strcmp(Target_dir, "/")){
 		dupset_Count = BFS(Ext, Min, Max, "/", regList_queue, dupSet); // start BFS with real path
 	}
-	else{
-		if(Target_dir[0] == '.'){ // if relative path -> change to realpath
-			if(realpath(Target_dir, realPath) == NULL){
-				fprintf(stderr, "realpath() error\n");
-				exit(1); // exit fmd5 process
-			}
-		}
-		else if(Target_dir[0] == '~'){ // starts with home directory (relative path)
-			char tmp[PATH_MAX];
-			strcpy(tmp, "/home/sangjun/");
-			strcat(tmp, &Target_dir[1]);
-			printf("tmp : %s\n", tmp);
-			if(realpath(tmp, realPath) == NULL){ // -> change to realpath
-				fprintf(stderr, "realpath() error\n");
-				exit(1); // exit fmd5 process
-			}
-		}
-		else{ // maybe realpath, but don't know it is correct path
-			if(realpath(Target_dir, realPath) == NULL){ // check correct realpath or not
-				fprintf(stderr, "realpath() error\n");
-				exit(1);
-			}
+	else if(Target_dir[0] == '.'){
+		if(realpath(Target_dir, realPath) == NULL){
+			fprintf(stderr, "realpath() error\n");
+			exit(1); // exit fmd5 process
 		}
 		dupset_Count = BFS(Ext, Min, Max, realPath, regList_queue, dupSet); // start BFS with real path
 	}
+	else{
+		if(realpath(Target_dir, realPath) == NULL){ // check correct realpath or not
+			fprintf(stderr, "realpath() error\n");
+			exit(1);
+		}
+		dupset_Count = BFS(Ext, Min, Max, realPath, regList_queue, dupSet); // start BFS with real path
+	}
+
 	return dupset_Count;
 }
 
 void check_targetDir(char* Ext, char* Target_dir){
 	struct stat st;
-	lstat(Target_dir, &st);
 	if(lstat(Target_dir, &st) < 0) // if (Target_dir != DIRECTORY || Target_dir == !FILE)
 		exit(1); // exit fmd5 process
 
@@ -227,13 +227,19 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 				printf("tmp_path : %s\n", tmp_path);
 				continue;
 			}
+			if(!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode)){
+				printf("not dir & not reg\n");
+				fclose(IN);
+				continue;
+			}
+
 			md5(IN, tmp_sc);
 			fclose(IN);
 			int tmpSize = get_fileSize(tmp_path);
 
 			if(S_ISDIR(st.st_mode)){
-				if((strcmp(tmp_path, "/proc") == 0) || (strcmp(tmp_path, "/run") == 0) || (strcmp(tmp_path, "/sys") == 0) ||
-						(strcmp(tmp_path, "/dev") == 0) || (strcmp(tmp_path, "/usr/src") == 0)) {
+				if((strcmp(tmp_path, "/proc") == 0) || (strcmp(tmp_path, "/run") == 0) || (strcmp(tmp_path, "/sys") == 0) ){
+//						(strcmp(tmp_path, "/dev") == 0) || (strcmp(tmp_path, "/usr/src") == 0)) {  {
 					continue;
 				}
 				else{
@@ -241,6 +247,7 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 				}
 			}
 			else if(S_ISREG(st.st_mode)){
+//			else if((st.st_mode & S_IFMT) == S_IFREG){
 				int condition = 0;
 				condition += check_ext(Ext, tmp_path);
 				condition += check_size(Min, Max, tmp_path);
@@ -260,8 +267,8 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 
 								enqueue(&regList_queue[j], tmp_path);	
 								printf("COUNT : %d\n", COUNT++);
-								printf("COUNT_MD5 : %d\n", COUNT_MD5);
-								print_queue(&regList_queue[j]);
+//								printf("COUNT_MD5 : %d\n", COUNT_MD5);
+//								print_queue(&regList_queue[j]);
 								isFirst = 0;
 								break;
 							}
