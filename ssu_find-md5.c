@@ -24,6 +24,7 @@
 typedef struct Node{
 	char data[PATH_MAX];
 	struct Node* next;
+	struct Node* prev;
 	unsigned char hash[HASH_SIZE];
 	double size;
 }Node;
@@ -44,6 +45,7 @@ void initQueue(Queue* queue);
 int isEmpty(Queue* queue);
 void enqueue(Queue* queue, char* data);
 char* dequeue(Queue* queue, char* data);
+int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k);
 int get_dupList(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet);
 void check_targetDir(char* Ext, char* Target_dir);
 int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet);
@@ -60,7 +62,10 @@ void print_queue(Queue* queue);
 void sort_dupSet(Queue* dupSet, int k);
 void fmd5_delete(void);
 char* toComma(long n, char* fileSize);
-
+int d_delete(int SET_IDX, int LIST_IDX,Queue* dupSet, int k);
+void i_delete(int SET_IDX, Queue* dupSet);
+void f_delete(int SET_IDX, Queue* dupSet);
+void t_delete(int SET_IDX, Queue* dupSet);
 
 unsigned char hashVal[HASH_SIZE];
 
@@ -80,10 +85,10 @@ int main(int argc, char* argv[]){
 	strcpy(Target_dir, argv[3]);
 
 	int k = get_dupList(Ext, Min, Max, Target_dir, RegularFile_dupList, dupSet);
-
+	dupSet = (Queue*)realloc(dupSet, sizeof(Queue) * k);
 	sort_dupSet(dupSet, k);
 	print_dupList(dupSet, k);
-	
+
 	printf("COUNT_FILE : %d\n", COUNT_FILE); // number of total file count
 	printf("DUP_COUNT : %d\n", DUP); // number of duplicate file count
 	printf("DIFF_FILE : %d\n", DIF_FILE); // number of different file count
@@ -116,24 +121,45 @@ int main(int argc, char* argv[]){
 			exit(0);
 		}
 
+		/******* [OPTION] ******/
 		if(input_cnt != 2 && input_cnt != 3){ // input error : d(3), i(2), f(2), t(2)
 			printf("input error\n");
 			continue;
 		}
 
-		if(!strcmp(input_v[1], "d")){
-
+		if(!strcmp(input_v[1], "d")){ // d : input_cnt == 3
+			if(input_cnt != 3){
+				printf("input error\n");
+				continue;
+			}
+			printf("(before) k : %d\n", k);
+			k = d_delete(atoi(input_v[0]), atoi(input_v[2]), dupSet, k);
+			printf("(after) k : %d\n", k);
+			print_dupList(dupSet, k);
 		}
-		else if(!strcmp(input_v[1], "i")){
-
+		else if(!strcmp(input_v[1], "i")){ // i : input_cnt == 2
+			if(input_cnt != 2){
+				printf("input error\n");
+				continue;
+			}
+			i_delete(atoi(input_v[0]), dupSet);
 		}
-		else if(!strcmp(input_v[1], "f")){
-
+		else if(!strcmp(input_v[1], "f")){ // f : input_cnt == 2
+			if(input_cnt != 2){
+				printf("input error\n");
+				continue;
+			}
+			f_delete(atoi(input_v[0]), dupSet);
 		}
-		else if(!strcmp(input_v[1], "t")){
-
+		else if(!strcmp(input_v[1], "t")){ // t : input_cnt == 2
+			if(input_cnt != 2){
+				printf("input error\n");
+				continue;
+			}
+			t_delete(atoi(input_v[0]), dupSet);
 		}
-		
+		/*********************/
+
 		else{
 			printf("input error\n");
 			continue;
@@ -187,10 +213,14 @@ void enqueue(Queue* queue, char* data){
 	strcpy(newNode->data, data);
 	strcpy(newNode->hash, hashVal);
 	newNode->next = NULL;
-	if(isEmpty(queue))
+	newNode->prev = queue->rear;
+	if(isEmpty(queue)){
 		queue->front = newNode;
-	else
+		queue->rear = newNode;
+	}
+	else{
 		queue->rear->next = newNode;
+	}
 	queue->rear = newNode;
 	queue->count++;
 	return;
@@ -206,6 +236,57 @@ char* dequeue(Queue* queue, char* data){
 	free(ptr);
 	queue->count--;
 	return data;
+}
+
+int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){
+	int t = k;
+	Node* tmp;
+
+	if(LIST_IDX == 1){
+		if(unlink(queue[SET_IDX].front->data) < 0){
+			fprintf(stderr, "unlink error\n");
+			return k;
+		}
+		tmp = queue[SET_IDX].front;
+		queue[SET_IDX].front = queue[SET_IDX].front->next;
+		queue[SET_IDX].count--;
+		free(tmp);
+	}
+
+	else if(LIST_IDX == queue[SET_IDX].count){
+		if(unlink(queue[SET_IDX].rear->data) < 0){
+			fprintf(stderr, "unlink error\n");
+			return k;
+		}
+		tmp = queue[SET_IDX].rear;
+		queue[SET_IDX].rear = queue[SET_IDX].rear->prev;
+		queue[SET_IDX].rear->next = NULL;
+		queue[SET_IDX].count--;
+		tmp->next = NULL;
+		free(tmp);
+	}
+
+	else{
+		tmp = queue[SET_IDX].front;
+		for(int i=1; i<LIST_IDX; i++){
+			if(tmp->next != NULL){
+				tmp = tmp->next;
+			}
+		}
+		if(unlink(tmp->data) < 0){
+			fprintf(stderr, "unlink error\n");
+			return k;
+		}
+		tmp->prev->next = tmp->next;
+		tmp->next->prev = tmp->prev;
+		queue[SET_IDX].count--;
+		free(tmp);
+	}
+	if(queue[SET_IDX].count == 1)
+		t--;
+
+	return t;
+
 }
 /***************/
 
@@ -504,7 +585,6 @@ void print_dupList(Queue* reg_dupList, int k){ // print duplicate list -> termin
 		md5(IN, tmp);
 		fclose(IN);
 		toComma(reg_dupList[i].front->size, fileSize);
-//		printf("---- Identical files #%d (%ld bytes - ", i+1, get_fileSize(reg_dupList[i].front->data));
 		printf("---- Identical files #%d (%s bytes - ", i+1, fileSize);
 		for(int j=0; j<MD5_DIGEST_LENGTH; j++)
 			printf("%02x",tmp[j]);
@@ -553,7 +633,6 @@ void sort_dupSet(Queue* dupSet, int k){
 
 char* toComma(long n, char* com_str){
 	char str[FILE_SIZE];
-//	char com_str[FILE_SIZE];
 
 	sprintf(str, "%ld", n);
 	int len = strlen(str);
@@ -570,7 +649,53 @@ char* toComma(long n, char* com_str){
 }
 
 
-void fmd5_delete(){
+int d_delete(int SET_IDX, int LIST_IDX, Queue* dupSet, int k){
+	if(SET_IDX < 0 || LIST_IDX < 0){
+		fprintf(stderr, "[INDEX] input error(non-negative)\n");
+		return k;
+	}
+	int t = k;
+	k = deleteNode(dupSet, SET_IDX-1, LIST_IDX, k);
 
+	if(t == k){} // after delete -> no change in dupSet list index
+	else{ // after delete -> dupSet list index--
+		if(SET_IDX == t){ //  SET_IDX == last index of dupSet
+			initQueue(&dupSet[SET_IDX]);
+		}
+		else{ // SET_IDX != last index of dupSet
+			for(int i=SET_IDX-1; i<k; i++){ 
+				dupSet[i] = dupSet[i+1];
+			}
+			initQueue(&dupSet[k]);
+		}
+	}
+	return k;
+}
+
+void i_delete(int SET_IDX, Queue* dupSet){
+	if(SET_IDX < 0){
+		fprintf(stderr, "[INDEX] input error(non-negative)\n");
+		return;	
+	}
+	return;
+}
+
+
+void f_delete(int SET_IDX, Queue* dupSet){
+	if(SET_IDX < 0){
+		fprintf(stderr, "[INDEX] input error(non-negative)\n");
+		return;	
+	}
+
+	return;
+}
+
+void t_delete(int SET_IDX, Queue* dupSet){
+	if(SET_IDX < 0){
+		fprintf(stderr, "[INDEX] input error(non-negative)\n");
+		return;	
+	}
+
+	return;
 }
 
