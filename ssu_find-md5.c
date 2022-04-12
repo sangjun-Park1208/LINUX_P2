@@ -46,6 +46,7 @@ int isEmpty(Queue* queue);
 void enqueue(Queue* queue, char* data);
 char* dequeue(Queue* queue, char* data);
 int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k);
+int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k);
 int get_dupList(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet);
 void check_targetDir(char* Ext, char* Target_dir);
 int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet);
@@ -63,9 +64,9 @@ void sort_dupSet(Queue* dupSet, int k);
 void fmd5_delete(void);
 char* toComma(long n, char* fileSize);
 int d_delete(int SET_IDX, int LIST_IDX,Queue* dupSet, int k);
-void i_delete(int SET_IDX, Queue* dupSet);
-void f_delete(int SET_IDX, Queue* dupSet);
-void t_delete(int SET_IDX, Queue* dupSet);
+int i_delete(int SET_IDX, Queue* dupSet, int k);
+int f_delete(int SET_IDX, Queue* dupSet, int k);
+int t_delete(int SET_IDX, Queue* dupSet, int k);
 
 unsigned char hashVal[HASH_SIZE];
 
@@ -132,9 +133,7 @@ int main(int argc, char* argv[]){
 				printf("input error\n");
 				continue;
 			}
-			printf("(before) k : %d\n", k);
 			k = d_delete(atoi(input_v[0]), atoi(input_v[2]), dupSet, k);
-			printf("(after) k : %d\n", k);
 			print_dupList(dupSet, k);
 		}
 		else if(!strcmp(input_v[1], "i")){ // i : input_cnt == 2
@@ -142,28 +141,30 @@ int main(int argc, char* argv[]){
 				printf("input error\n");
 				continue;
 			}
-			i_delete(atoi(input_v[0]), dupSet);
+			k = i_delete(atoi(input_v[0]), dupSet, k);
+			print_dupList(dupSet, k);
 		}
 		else if(!strcmp(input_v[1], "f")){ // f : input_cnt == 2
 			if(input_cnt != 2){
 				printf("input error\n");
 				continue;
 			}
-			f_delete(atoi(input_v[0]), dupSet);
+			k = f_delete(atoi(input_v[0]), dupSet, k);
+			print_dupList(dupSet, k);
 		}
 		else if(!strcmp(input_v[1], "t")){ // t : input_cnt == 2
 			if(input_cnt != 2){
 				printf("input error\n");
 				continue;
 			}
-			t_delete(atoi(input_v[0]), dupSet);
+			k = t_delete(atoi(input_v[0]), dupSet, k);
+			print_dupList(dupSet, k);
 		}
-		/*********************/
-
 		else{
 			printf("input error\n");
 			continue;
 		}
+		/*********************/
 
 	}
 
@@ -286,7 +287,91 @@ int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 		t--;
 
 	return t;
+}
 
+int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){
+	int t = k;
+	Node* tmp;
+
+	printf("LIST_IDX : %d\n", LIST_IDX);
+	int input;
+//	tmp = queue[SET_IDX].front;//////////
+	if(LIST_IDX == 1){
+		printf("Delete \"%s\"? [y/n] ", queue[SET_IDX].front->data);
+		input = getc(stdin);
+		if(input == 'n' || input == 'N'){}
+		else if(input == 'y' || input == 'Y'){
+
+			if(unlink(queue[SET_IDX].front->data) < 0){
+				fprintf(stderr, "unlink error\n");
+				return k;
+			}
+			tmp = queue[SET_IDX].front;
+			queue[SET_IDX].front = queue[SET_IDX].front->next;
+			queue[SET_IDX].count--;
+			free(tmp);
+		}
+		else{
+			printf("Input error (front) (y / n)\n");
+			return k;
+		}
+
+	}
+	else if(LIST_IDX == queue[SET_IDX].count){
+		printf("Delete \"%s\"? [y/n] ", queue[SET_IDX].rear->data);
+		input = getc(stdin);
+		if(input == 'n' || input == 'N'){}
+		else if(input == 'y' || input == 'Y'){
+			if(unlink(queue[SET_IDX].rear->data) < 0){
+				fprintf(stderr, "unlink error\n");
+				return k;
+			}
+			tmp = queue[SET_IDX].rear;
+			queue[SET_IDX].rear = queue[SET_IDX].rear->prev;
+			queue[SET_IDX].rear->next = NULL;
+			queue[SET_IDX].count--;
+			tmp->next = NULL;
+			free(tmp);
+		}
+		else{
+			printf("Input error(rear) (y / n)\n");
+			return k;
+		}
+	}
+	else{
+		tmp = queue[SET_IDX].front;
+		for(int i=1; i<LIST_IDX; i++){
+			if(tmp->next != NULL){
+				tmp = tmp->next;
+			}
+		}
+		printf("Delete \"%s\"? [y/n] ", tmp->data);
+		input = getc(stdin);
+		if(input == 'n' || input == 'N'){}
+		else if(input == 'y' || input == 'Y'){
+
+			if(unlink(tmp->data) < 0){
+				fprintf(stderr, "unlink error\n");
+				return k;
+			}
+			tmp->prev->next = tmp->next;
+			tmp->next->prev = tmp->prev;
+			queue[SET_IDX].count--;
+			free(tmp);
+		}
+		else{
+			printf("Input error(middle) (y / n)\n");
+			return k;
+		}
+	}
+
+	while(getchar() != '\n')
+		continue;
+
+	if(queue[SET_IDX].count == 1)
+		t--;
+
+	return t;
 }
 /***************/
 
@@ -672,30 +757,54 @@ int d_delete(int SET_IDX, int LIST_IDX, Queue* dupSet, int k){
 	return k;
 }
 
-void i_delete(int SET_IDX, Queue* dupSet){
+int i_delete(int SET_IDX, Queue* dupSet, int k){
 	if(SET_IDX < 0){
 		fprintf(stderr, "[INDEX] input error(non-negative)\n");
-		return;	
+		return k;	
 	}
-	return;
+	int t = k;
+	char input[INPUT_MAX];
+	memset(input, '\0', INPUT_MAX);
+
+	for(int i=0; i <= dupSet[SET_IDX-1].count; i++){
+		printf("i+1 : %d\n", i+1);
+		k = deleteNode_ask(dupSet, SET_IDX-1, i+1, k);
+	}
+
+	if(t == k){} // after delete -> no change in dupSet list index
+	else{ // after delete -> dupSet list index--
+		if(SET_IDX == t){ //  SET_IDX == last index of dupSet
+			initQueue(&dupSet[SET_IDX]);
+		}
+		else{ // SET_IDX != last index of dupSet
+			for(int i=SET_IDX-1; i<k; i++){ 
+				dupSet[i] = dupSet[i+1];
+			}
+			initQueue(&dupSet[k]);
+		}
+	}
+
+	return k;
 }
 
 
-void f_delete(int SET_IDX, Queue* dupSet){
+int f_delete(int SET_IDX, Queue* dupSet, int k){
 	if(SET_IDX < 0){
 		fprintf(stderr, "[INDEX] input error(non-negative)\n");
-		return;	
+		return k;	
 	}
+	int t = k;
 
-	return;
+	return k;
 }
 
-void t_delete(int SET_IDX, Queue* dupSet){
+int t_delete(int SET_IDX, Queue* dupSet, int k){
 	if(SET_IDX < 0){
 		fprintf(stderr, "[INDEX] input error(non-negative)\n");
-		return;	
+		return k;	
 	}
+	int t = k;
 
-	return;
+	return k;
 }
 
