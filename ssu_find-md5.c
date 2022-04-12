@@ -291,82 +291,81 @@ int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 
 int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 	int t = k;
-	Node* tmp;
-
-	printf("LIST_IDX : %d\n", LIST_IDX);
+	Node* cur;
 	int input;
-//	tmp = queue[SET_IDX].front;//////////
-	if(LIST_IDX == 1){
-		printf("Delete \"%s\"? [y/n] ", queue[SET_IDX].front->data);
-		input = getc(stdin);
-		if(input == 'n' || input == 'N'){}
-		else if(input == 'y' || input == 'Y'){
-
-			if(unlink(queue[SET_IDX].front->data) < 0){
-				fprintf(stderr, "unlink error\n");
+	cur = queue[SET_IDX].front;
+	for(int i=1; i<=LIST_IDX; i++){
+		if(i == 1){
+			printf("Delete \"%s\"? [y/n] ", queue[SET_IDX].front->data);
+			input = getc(stdin);
+			if(input == 'n' || input == 'N'){
+				cur = cur->next;
+				cur->prev = queue[SET_IDX].front;
+			}
+			else if(input == 'y' || input == 'Y'){
+	
+				if(unlink(queue[SET_IDX].front->data) < 0){
+					fprintf(stderr, "unlink error\n");
+					return k;
+				}
+				cur = cur->next;
+				cur->prev = queue[SET_IDX].front;
+				queue[SET_IDX].front = queue[SET_IDX].front->next;
+				queue[SET_IDX].count--;
+			}
+			else{
+				printf("Input error (front) (y / n)\n");
 				return k;
 			}
-			tmp = queue[SET_IDX].front;
-			queue[SET_IDX].front = queue[SET_IDX].front->next;
-			queue[SET_IDX].count--;
-			free(tmp);
+	
 		}
-		else{
-			printf("Input error (front) (y / n)\n");
-			return k;
-		}
-
-	}
-	else if(LIST_IDX == queue[SET_IDX].count){
-		printf("Delete \"%s\"? [y/n] ", queue[SET_IDX].rear->data);
-		input = getc(stdin);
-		if(input == 'n' || input == 'N'){}
-		else if(input == 'y' || input == 'Y'){
-			if(unlink(queue[SET_IDX].rear->data) < 0){
-				fprintf(stderr, "unlink error\n");
+		else if(i == LIST_IDX){
+			printf("Delete \"%s\"? [y/n] ", queue[SET_IDX].rear->data);
+			input = getc(stdin);
+			if(input == 'n' || input == 'N'){
+			}
+			else if(input == 'y' || input == 'Y'){
+				if(unlink(queue[SET_IDX].rear->data) < 0){
+					fprintf(stderr, "unlink error\n");
+					return k;
+				}
+				cur = queue[SET_IDX].rear;
+				queue[SET_IDX].rear = queue[SET_IDX].rear->prev;
+				queue[SET_IDX].rear->next = NULL;
+				cur->next = NULL;
+				queue[SET_IDX].count--;
+			}
+			else{
+				printf("Input error(rear) (y / n)\n");
 				return k;
 			}
-			tmp = queue[SET_IDX].rear;
-			queue[SET_IDX].rear = queue[SET_IDX].rear->prev;
-			queue[SET_IDX].rear->next = NULL;
-			queue[SET_IDX].count--;
-			tmp->next = NULL;
-			free(tmp);
 		}
 		else{
-			printf("Input error(rear) (y / n)\n");
-			return k;
-		}
-	}
-	else{
-		tmp = queue[SET_IDX].front;
-		for(int i=1; i<LIST_IDX; i++){
-			if(tmp->next != NULL){
-				tmp = tmp->next;
+			printf("Delete \"%s\"? [y/n] ", cur->data);
+			input = getc(stdin);
+			if(input == 'n' || input == 'N'){
+				cur = cur->next;
 			}
-		}
-		printf("Delete \"%s\"? [y/n] ", tmp->data);
-		input = getc(stdin);
-		if(input == 'n' || input == 'N'){}
-		else if(input == 'y' || input == 'Y'){
-
-			if(unlink(tmp->data) < 0){
-				fprintf(stderr, "unlink error\n");
+			else if(input == 'y' || input == 'Y'){
+	
+				if(unlink(cur->data) < 0){
+					fprintf(stderr, "unlink error\n");
+					return k;
+				}
+				cur->prev->next = cur->next;
+				cur->next->prev = cur->prev;
+				cur = cur->next;
+				queue[SET_IDX].count--;
+			}
+			else{
+				printf("Input error(middle) (y / n)\n");
 				return k;
 			}
-			tmp->prev->next = tmp->next;
-			tmp->next->prev = tmp->prev;
-			queue[SET_IDX].count--;
-			free(tmp);
 		}
-		else{
-			printf("Input error(middle) (y / n)\n");
-			return k;
-		}
+		
+		while(getchar() != '\n')
+			continue;
 	}
-
-	while(getchar() != '\n')
-		continue;
 
 	if(queue[SET_IDX].count == 1)
 		t--;
@@ -766,10 +765,7 @@ int i_delete(int SET_IDX, Queue* dupSet, int k){
 	char input[INPUT_MAX];
 	memset(input, '\0', INPUT_MAX);
 
-	for(int i=0; i <= dupSet[SET_IDX-1].count; i++){
-		printf("i+1 : %d\n", i+1);
-		k = deleteNode_ask(dupSet, SET_IDX-1, i+1, k);
-	}
+	k = deleteNode_ask(dupSet, SET_IDX-1, dupSet[SET_IDX-1].count, k);
 
 	if(t == k){} // after delete -> no change in dupSet list index
 	else{ // after delete -> dupSet list index--
