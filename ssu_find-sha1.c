@@ -166,7 +166,6 @@ int main(int argc, char* argv[]){
 
 	}
 
-//	printf("fsha1 process is over\n");
 	exit(0);
 }
 
@@ -318,7 +317,6 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 	
 		}
 		else if(i == LIST_IDX){
-			printf("i == LIST_IDX(%d)\n", LIST_IDX);
 			printf("Delete \"%s\"? [y/n] ", queue[SET_IDX].rear->data);
 			input = getc(stdin);
 			if(input == 'n' || input == 'N'){
@@ -372,10 +370,8 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 		while(getchar() != '\n')
 			continue;
 	}
-	while(getchar() != '\n')
-		continue;
 
-	if(queue[SET_IDX].count == 1)
+	if(queue[SET_IDX].count == 1 || queue[SET_IDX].count == 0)
 		t--;
 
 	return t;
