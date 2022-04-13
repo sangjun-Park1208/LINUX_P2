@@ -42,7 +42,14 @@ int main(){
 				}
 				execl("./ssu_find-md5", argv[1], argv[2], argv[3], argv[4], (char*)0);
 			}
-			
+
+			else if(!strcmp(argv[0], "fsha1")){
+				if(argc != 5){
+					fprintf(stderr, "Usage : fmd5 [FILE_EXTENSION] [MINSIZE] [MAXSIZE] [TARGET_DIRECTORY]\n");
+					continue;
+				}
+				execl("./ssu_find-sha1", argv[1], argv[2], argv[3], argv[4], (char*)0);
+			}
 
 			else if(!strcmp(argv[0], "exit")){
 				printf("Prompt End\n");
