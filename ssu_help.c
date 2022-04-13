@@ -10,6 +10,6 @@ int main(){
 	printf("         f : force delete except the recently modified file\n");
 	printf("         t : force move to Trash except the recently modified file\n");
 	printf("   > help\n");
-	printf("   > exit\n");
+	printf("   > exit\n\n");
 	return 0;
 }
