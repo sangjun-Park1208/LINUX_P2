@@ -291,7 +291,7 @@ int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 
 int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 	int t = k;
-	Node* cur;
+	Node* cur, *tmp;
 	int input;
 	cur = queue[SET_IDX].front;
 	for(int i=1; i<=LIST_IDX; i++){
@@ -308,10 +308,11 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 					fprintf(stderr, "unlink error\n");
 					return k;
 				}
+				tmp = queue[SET_IDX].front;
 				cur = cur->next;
-				cur->prev = queue[SET_IDX].front;
 				queue[SET_IDX].front = queue[SET_IDX].front->next;
 				queue[SET_IDX].count--;
+				free(tmp);
 			}
 			else{
 				printf("Input error (front) (y / n)\n");
@@ -331,8 +332,8 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 				}
 				cur = queue[SET_IDX].rear;
 				queue[SET_IDX].rear = queue[SET_IDX].rear->prev;
-				queue[SET_IDX].rear->next = NULL;
 				cur->next = NULL;
+				queue[SET_IDX].rear->next = NULL;
 				queue[SET_IDX].count--;
 			}
 			else{
@@ -352,10 +353,17 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 					fprintf(stderr, "unlink error\n");
 					return k;
 				}
-				cur->prev->next = cur->next;
-				cur->next->prev = cur->prev;
-				cur = cur->next;
-				queue[SET_IDX].count--;
+				if(!strcmp(cur->data, queue[SET_IDX].front->data)){
+					cur = cur->next;
+					queue[SET_IDX].front = queue[SET_IDX].front->next;
+					queue[SET_IDX].count--;
+				}
+				else{
+					cur->prev->next = cur->next;
+					cur->next->prev = cur->prev;
+					cur = cur->next;
+					queue[SET_IDX].count--;
+				}
 			}
 			else{
 				printf("Input error(middle) (y / n)\n");
