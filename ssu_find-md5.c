@@ -22,53 +22,51 @@
 #define INPUT_MAX 3
 
 typedef struct Node{
-	char data[PATH_MAX];
-	struct Node* next;
-	struct Node* prev;
-	unsigned char hash[HASH_SIZE];
-	double size;
+	char data[PATH_MAX]; // path
+	struct Node* next; // next
+	struct Node* prev; // previous
+	unsigned char hash[HASH_SIZE]; // hash value
+	double size; // file size
 }Node;
 
 typedef struct Queue{
-	Node* front;
-	Node* rear;
-	int count;
+	Node* front; // front(start)
+	Node* rear; // rear(end)
+	int count; // number of nodes in each Queue
 }Queue;
 
-int COUNT_FILE;
-int COUNT_MD5;
-int DUP;
-int DIF_FILE;
+int COUNT_FILE; // DEBUG : number of file in [TARGET_DIRECTORY]
+int COUNT_MD5; // DEBUG : number of function call : sha1()
+int DUP; // DEBUG : number of duplicate set
+int DIF_FILE; // DEBUG : number of difference files
+unsigned char hashVal[HASH_SIZE]; // in enqueue() -> store hash value in each node
 
-int split(char* string, char* seperator, char* argv[]);
-void initQueue(Queue* queue);
+int split(char* string, char* seperator, char* argv[]); // split string by seperator
+void initQueue(Queue* queue); // initiate Queue
 int isEmpty(Queue* queue);
 void enqueue(Queue* queue, char* data);
 char* dequeue(Queue* queue, char* data);
-int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k);
-int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k);
+int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k); // delete [d] OPTION 
+int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k); // delete [i] OPTION
 int get_dupList(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet);
-void check_targetDir(char* Ext, char* Target_dir);
-int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet);
-void do_fp(FILE* f, unsigned char* hash);
-void md5(FILE* f, unsigned char* hash);
+void check_targetDir(char* Ext, char* Target_dir); // check input error in [TARGET_DIRECTORY]
+int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet); // BFS algorithm : Searching
+void md5(FILE* f, unsigned char* hash); // get hash value
 off_t get_fileSize(char* path);
 int check_ext(char* Ext, char* tmp_path);
 int check_size(char* Min, char* Max, char* tmp_path);
-int MD5_Init(MD5_CTX* c);
-int MD5_Update(MD5_CTX* c, const void* data, unsigned long len);
-int MD5_Final(unsigned char* md, MD5_CTX* c);
-void print_dupList(Queue* reg_dupList, int k);
+int MD5_Init(MD5_CTX* c); // md5
+int MD5_Update(MD5_CTX* c, const void* data, unsigned long len); // md5
+int MD5_Final(unsigned char* md, MD5_CTX* c); // md5
+void print_dupList(Queue* reg_dupList, int k); // print every duplicate set under [TARGET_DIRECTORY] -> call print_queue()
 void print_queue(Queue* queue);
-void sort_dupSet(Queue* dupSet, int k);
-void fmd5_delete(void);
-char* toComma(long n, char* fileSize);
-int d_delete(int SET_IDX, int LIST_IDX,Queue* dupSet, int k);
-int i_delete(int SET_IDX, Queue* dupSet, int k);
-int f_delete(int SET_IDX, Queue* dupSet, int k);
-int t_delete(int SET_IDX, Queue* dupSet, int k);
+void sort_dupSet(Queue* dupSet, int k); // Sorting duplicate set by it's fileSize (Bubble Sort)
+char* toComma(long n, char* fileSize); // if fileSize is more than 1000Byte, insert comma(',') in mod(3)
+int d_delete(int SET_IDX, int LIST_IDX,Queue* dupSet, int k); // delete [d]
+int i_delete(int SET_IDX, Queue* dupSet, int k); // delete [i]
+int f_delete(int SET_IDX, Queue* dupSet, int k); // delete [f]
+int t_delete(int SET_IDX, Queue* dupSet, int k); // delete [t]
 
-unsigned char hashVal[HASH_SIZE];
 
 int main(int argc, char* argv[]){
 	struct timeval startTime, endTime;
@@ -130,7 +128,7 @@ int main(int argc, char* argv[]){
 
 		if(!strcmp(input_v[1], "d")){ // d : input_cnt == 3
 			if(input_cnt != 3){
-				printf("input error\n");
+				printf("(d) input error\n");
 				continue;
 			}
 			k = d_delete(atoi(input_v[0]), atoi(input_v[2]), dupSet, k);
@@ -138,7 +136,7 @@ int main(int argc, char* argv[]){
 		}
 		else if(!strcmp(input_v[1], "i")){ // i : input_cnt == 2
 			if(input_cnt != 2){
-				printf("input error\n");
+				printf("(i) input error\n");
 				continue;
 			}
 			k = i_delete(atoi(input_v[0]), dupSet, k);
@@ -146,7 +144,7 @@ int main(int argc, char* argv[]){
 		}
 		else if(!strcmp(input_v[1], "f")){ // f : input_cnt == 2
 			if(input_cnt != 2){
-				printf("input error\n");
+				printf("(f) input error\n");
 				continue;
 			}
 			k = f_delete(atoi(input_v[0]), dupSet, k);
@@ -154,7 +152,7 @@ int main(int argc, char* argv[]){
 		}
 		else if(!strcmp(input_v[1], "t")){ // t : input_cnt == 2
 			if(input_cnt != 2){
-				printf("input error\n");
+				printf("(t) input error\n");
 				continue;
 			}
 			k = t_delete(atoi(input_v[0]), dupSet, k);
@@ -168,8 +166,6 @@ int main(int argc, char* argv[]){
 
 	}
 
-
-	printf("fmd5 process is over\n");
 	exit(0);
 }
 
@@ -375,7 +371,7 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 			continue;
 	}
 
-	if(queue[SET_IDX].count == 1)
+	if(queue[SET_IDX].count == 1 || queue[SET_IDX].count == 0)
 		t--;
 
 	return t;
@@ -770,9 +766,6 @@ int i_delete(int SET_IDX, Queue* dupSet, int k){
 		return k;	
 	}
 	int t = k;
-	char input[INPUT_MAX];
-	memset(input, '\0', INPUT_MAX);
-
 	k = deleteNode_ask(dupSet, SET_IDX-1, dupSet[SET_IDX-1].count, k);
 
 	if(t == k){} // after delete -> no change in dupSet list index
