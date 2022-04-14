@@ -11,6 +11,7 @@
 #include <dirent.h>
 #include <time.h>
 #include <errno.h>
+#include <pwd.h>
 
 #define BUF_MAX 1024
 #define PATH_MAX 4096
@@ -49,6 +50,7 @@ char* dequeue(Queue* queue, char* data);
 int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k); // delete [d] OPTION 
 int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k); // delete [i] OPTION
 void deleteNode_force(Queue* queue, int SET_IDX, int REC_IDX, int k); // delete [f] OPTION
+void deleteNode_trash(Queue* queue, int SET_IDX, int REC_IDX, int k); // delete [t] OPTION
 int get_dupList(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet);
 void check_targetDir(char* Ext, char* Target_dir); // check input error in [TARGET_DIRECTORY]
 int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet); // BFS algorithm : Searching
@@ -402,6 +404,93 @@ void deleteNode_force(Queue* dupSet, int SET_IDX, int REC_IDX, int k){
 			}
 
 			dupSet[SET_IDX].count--;
+		}
+		i++;
+		tmp = tmp->next;
+	}
+	return;
+}
+	
+
+void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){
+	Node* tmp = dupSet[SET_IDX].front;
+	int i=1;
+	struct stat st;
+	char tmpPath[PATH_MAX];
+	struct dirent** namelist;
+	struct passwd* pwd;
+	if((pwd = getpwuid(getuid())) == NULL){
+		fprintf(stderr, "getpwuid error\n");
+		return;
+	}
+	char homeDir[BUF_MAX-256];
+	char trashDir[BUF_MAX-128];
+	memset(homeDir, '\0', BUF_MAX);
+	memset(trashDir, '\0', BUF_MAX);
+	sprintf(homeDir, "%s/", pwd->pw_dir);
+	sprintf(trashDir,"%s%s", homeDir, ".local/share/Trash/files/");
+	int fileCnt = scandir(trashDir, &namelist, NULL, alphasort);
+	int checkDup = 0;
+	int checkDupIDX;
+	char inTrashfile[PATH_MAX-256];
+	while(dupSet[SET_IDX].count > 1){
+		if(i == REC_IDX){
+			lstat(tmp->data, &st);
+			time_t mt = st.st_mtime;
+			struct tm mT;
+			localtime_r(&mt, &mT);
+
+			printf("All files in #%d have moved to Trash except \"%s\" (%d-%02d-%02d %02d:%02d:%02d)\n\n", SET_IDX+1, tmp->data,
+					mT.tm_year+1900, mT.tm_mon+1, mT.tm_mday+1, mT.tm_hour, mT.tm_min, mT.tm_sec);
+		}
+		else{
+			for(int i=0; i<fileCnt; i++){
+				if(!strcmp(namelist[i]->d_name, strrchr(tmp->data, '/')+1)){ // if filename is same
+					checkDup = 1;
+					checkDupIDX = i;
+					break;
+				}
+			}
+			if(checkDup == 1){ // If specific file's name is same with "tmp->data"(before moved to Trash directory).
+				// compare hash value
+				memset(hashVal, '\0', HASH_SIZE);
+				memset(inTrashfile, '\0', BUF_MAX);
+				sprintf(inTrashfile, "%s%s", trashDir, namelist[checkDupIDX]->d_name);
+				FILE* IN;
+				if((IN = fopen(inTrashfile, "r")) == NULL){
+					fprintf(stderr, "fopen error in enqueue function\n");
+					printf("%s\n", strerror(errno));
+					return;
+				}
+				md5(IN, hashVal);
+				fclose(IN);
+
+				if(!strcmp(hashVal, tmp->hash)){ // if filename is same && hash value is same
+					if(unlink(inTrashfile) < 0){ // delete Trash's file
+						fprintf(stderr, "unlink error\n");
+						return;
+					}
+					if(rename(tmp->data, inTrashfile) < 0){ // and move file to Trash Directory
+						fprintf(stderr, "rename error\n");
+						return;
+					}
+				}
+				else{ // if filename is same && hash value is different
+					char reName[PATH_MAX+256];
+					memset(reName, '\0', PATH_MAX);
+					sprintf(reName, "%s_copy", tmp->data); // make file A -> A_copy
+					if(rename(tmp->data, reName) < 0){ // then move A to Trash Directory
+						fprintf(stderr, "rename error\n");
+						return;
+					}
+				}
+			}
+			else{ // No same filename in Trash directory
+				if(rename(tmp->data, tmpPath) < 0){
+					fprintf(stderr, "rename error\n");
+					return;
+				}
+			}
 		}
 		i++;
 		tmp = tmp->next;
@@ -870,8 +959,20 @@ int t_delete(int SET_IDX, Queue* dupSet, int k){
 		fprintf(stderr, "[INDEX] input error(non-negative)\n");
 		return k;	
 	}
-	int t = k;
+	int REC_IDX; // Recent modified file
 
-	return k;
+	REC_IDX = get_recentIDX(dupSet, SET_IDX-1);
+	deleteNode_trash(dupSet, SET_IDX-1, REC_IDX, k);
+	if(SET_IDX == k){
+		initQueue(&dupSet[SET_IDX]);
+	}
+	else{
+		for(int i=SET_IDX-1; i<k; i++){
+			dupSet[i] = dupSet[i+1];
+		}
+		initQueue(&dupSet[k]);
+	}
+
+	return k-1;
 }
 
