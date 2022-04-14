@@ -48,6 +48,7 @@ void enqueue(Queue* queue, char* data);
 char* dequeue(Queue* queue, char* data);
 int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k); // delete [d] OPTION 
 int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k); // delete [i] OPTION
+void deleteNode_force(Queue* queue, int SET_IDX, int REC_IDX, int k); // delete [f] OPTION
 int get_dupList(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet);
 void check_targetDir(char* Ext, char* Target_dir); // check input error in [TARGET_DIRECTORY]
 int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet); // BFS algorithm : Searching
@@ -62,6 +63,7 @@ void print_dupList(Queue* reg_dupList, int k); // print every duplicate set unde
 void print_queue(Queue* queue);
 void sort_dupSet(Queue* dupSet, int k); // Sorting duplicate set by it's fileSize (Bubble Sort)
 char* toComma(long n, char* fileSize); // if fileSize is more than 1000Byte, insert comma(',') in mod(3)
+int get_recentIDX(Queue* dupSet, int SET_IDX); // for [f], [t] OPTION : get recent modified file IDX in linked list
 int d_delete(int SET_IDX, int LIST_IDX,Queue* dupSet, int k); // delete [d]
 int i_delete(int SET_IDX, Queue* dupSet, int k); // delete [i]
 int f_delete(int SET_IDX, Queue* dupSet, int k); // delete [f]
@@ -375,6 +377,36 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 		t--;
 
 	return t;
+}
+
+
+void deleteNode_force(Queue* dupSet, int SET_IDX, int REC_IDX, int k){
+	Node* tmp = dupSet[SET_IDX].front;
+	int i=1;
+	struct stat st;
+
+	while(dupSet[SET_IDX].count > 1){
+		if(i == REC_IDX){
+			lstat(tmp->data, &st);
+			time_t mt = st.st_mtime;
+			struct tm mT;
+			localtime_r(&mt, &mT);
+
+			printf("Left file in #%d : %s (%d-%02d-%02d %02d:%02d:%02d)\n\n", SET_IDX+1, tmp->data, 
+					mT.tm_year+1900, mT.tm_mon+1, mT.tm_mday+1, mT.tm_hour, mT.tm_min, mT.tm_sec);
+		}
+		else{
+			if(unlink(tmp->data)<0){
+				fprintf(stderr, "unlink error\n");
+				return;
+			}
+
+			dupSet[SET_IDX].count--;
+		}
+		i++;
+		tmp = tmp->next;
+	}
+	return;
 }
 /***************/
 
@@ -737,6 +769,31 @@ char* toComma(long n, char* com_str){
 }
 
 
+int get_recentIDX(Queue* dupSet, int SET_IDX) {
+	int REC_IDX = 1;
+	int checkIDX = 1;
+	struct stat st;
+	Node* tmp = dupSet[SET_IDX].front;
+	tmp = tmp->next;
+	lstat(dupSet[SET_IDX].front->data, &st);
+	time_t REC_TIME = st.st_mtime;
+	while(tmp != NULL){
+		checkIDX++;
+		lstat(tmp->data, &st);
+		if(REC_TIME < st.st_mtime){
+			REC_TIME = st.st_mtime;
+			REC_IDX = checkIDX;
+		}
+		tmp = tmp->next;
+	}
+
+
+	free(tmp);
+
+	return REC_IDX;
+}
+
+
 int d_delete(int SET_IDX, int LIST_IDX, Queue* dupSet, int k){
 	if(SET_IDX < 0 || LIST_IDX < 0){
 		fprintf(stderr, "[INDEX] input error(non-negative)\n");
@@ -790,9 +847,22 @@ int f_delete(int SET_IDX, Queue* dupSet, int k){
 		fprintf(stderr, "[INDEX] input error(non-negative)\n");
 		return k;	
 	}
-	int t = k;
 
-	return k;
+	int REC_IDX; // Recent modified file : return value..
+
+	REC_IDX = get_recentIDX(dupSet, SET_IDX-1);
+	deleteNode_force(dupSet, SET_IDX-1, REC_IDX, k);
+	if(SET_IDX == k){ //  SET_IDX == last index of dupSet
+		initQueue(&dupSet[SET_IDX]);
+	}
+	else{ // SET_IDX != last index of dupSet
+		for(int i=SET_IDX-1; i<k; i++){ 
+			dupSet[i] = dupSet[i+1];
+		}
+		initQueue(&dupSet[k]);
+	}
+
+	return k-1; // force delete except one file -> must removed from dupSet
 }
 
 int t_delete(int SET_IDX, Queue* dupSet, int k){
