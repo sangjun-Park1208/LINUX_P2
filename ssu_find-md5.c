@@ -92,9 +92,9 @@ int main(int argc, char* argv[]){
 	sort_dupSet(dupSet, k);
 	print_dupList(dupSet, k);
 
-	printf("COUNT_FILE : %d\n", COUNT_FILE); // number of total file count
-	printf("DUP_COUNT : %d\n", DUP); // number of duplicate file count
-	printf("DIFF_FILE : %d\n", DIF_FILE); // number of different file count
+//	printf("COUNT_FILE : %d\n", COUNT_FILE); // number of total file count
+//	printf("DUP_COUNT : %d\n", DUP); // number of duplicate file count
+//	printf("DIFF_FILE : %d\n", DIF_FILE); // number of different file count
 	gettimeofday(&endTime, NULL);
 	printf("Searching time: %ld:%llu(sec:usec)\n\n", endTime.tv_sec - startTime.tv_sec, (unsigned long long)endTime.tv_usec - (unsigned long long)startTime.tv_usec);
 
@@ -173,7 +173,7 @@ int main(int argc, char* argv[]){
 	exit(0);
 }
 
-int split(char* string, char* seperator, char* argv[]){
+int split(char* string, char* seperator, char* argv[]){ // parsing function : delimiter ' '
 	int argc = 0;
 	char* ptr = NULL;
 	ptr = strtok(string, seperator);
@@ -195,7 +195,7 @@ int isEmpty(Queue* queue){
 	return queue->count == 0;
 }
 
-void enqueue(Queue* queue, char* data){
+void enqueue(Queue* queue, char* data){ // Each Node has :	realPath, hashValue, fileSize, next*, prev*
 	Node* newNode = (Node*)malloc(sizeof(Node));
 	memset(hashVal, '\0', HASH_SIZE);
 
@@ -227,7 +227,7 @@ void enqueue(Queue* queue, char* data){
 	return;
 }
 
-char* dequeue(Queue* queue, char* data){
+char* dequeue(Queue* queue, char* data){ // dequeue() needs for directory check
 	Node* ptr;
 	if(isEmpty(queue))
 		return NULL;
@@ -236,14 +236,14 @@ char* dequeue(Queue* queue, char* data){
 	queue->front = ptr->next;
 	free(ptr);
 	queue->count--;
-	return data;
+	return data; // when dequeue() is called -> return each directory's realPath
 }
 
 int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [d] OPTION
 	int t = k;
 	Node* tmp;
 
-	if(LIST_IDX == 1){
+	if(LIST_IDX == 1){ // if user want to delete first index
 		if(unlink(queue[SET_IDX].front->data) < 0){
 			fprintf(stderr, "unlink error\n");
 			return k;
@@ -254,7 +254,7 @@ int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [d] OPTION
 		free(tmp);
 	}
 
-	else if(LIST_IDX == queue[SET_IDX].count){
+	else if(LIST_IDX == queue[SET_IDX].count){ // if user want to delete last index
 		if(unlink(queue[SET_IDX].rear->data) < 0){
 			fprintf(stderr, "unlink error\n");
 			return k;
@@ -267,9 +267,9 @@ int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [d] OPTION
 		free(tmp);
 	}
 
-	else{
+	else{ // if user want to delete middle([2] ~ [last-1]) index
 		tmp = queue[SET_IDX].front;
-		for(int i=1; i<LIST_IDX; i++){
+		for(int i=1; i<LIST_IDX; i++){ // move tmp to LIST_IDX
 			if(tmp->next != NULL){
 				tmp = tmp->next;
 			}
@@ -294,8 +294,8 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [i] OPTIO
 	Node* cur, *tmp;
 	int input;
 	cur = queue[SET_IDX].front;
-	for(int i=1; i<=LIST_IDX; i++){
-		if(i == 1){
+	for(int i=1; i<=LIST_IDX; i++){ // ask usr for every files in duplicate Set[SET_IDX]
+		if(i == 1){ // if first
 			printf("Delete \"%s\"? [y/n] ", queue[SET_IDX].front->data);
 			input = getc(stdin);
 			if(input == 'n' || input == 'N'){
@@ -320,7 +320,7 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [i] OPTIO
 			}
 	
 		}
-		else if(i == LIST_IDX){
+		else if(i == LIST_IDX){ // if last
 			printf("Delete \"%s\"? [y/n] ", queue[SET_IDX].rear->data);
 			input = getc(stdin);
 			if(input == 'n' || input == 'N'){
@@ -341,7 +341,7 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [i] OPTIO
 				return k;
 			}
 		}
-		else{
+		else{ // if middle([2] ~ [last-1])
 			printf("Delete \"%s\"? [y/n] ", cur->data);
 			input = getc(stdin);
 			if(input == 'n' || input == 'N'){
@@ -371,11 +371,11 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [i] OPTIO
 			}
 		}
 		
-		while(getchar() != '\n')
+		while(getchar() != '\n') // fflush buffer
 			continue;
 	}
 
-	if(queue[SET_IDX].count == 1 || queue[SET_IDX].count == 0)
+	if(queue[SET_IDX].count == 1 || queue[SET_IDX].count == 0) // if remaining Node count is 1 || 0 -> remove this Set from dupSet
 		t--;
 
 	return t;
@@ -388,7 +388,7 @@ void deleteNode_force(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [f] OP
 	struct stat st;
 
 	while(tmp != NULL){
-		if(i == REC_IDX){
+		if(i == REC_IDX){ // if tmp meet REC_IDX -> remain
 			lstat(tmp->data, &st);
 			time_t mt = st.st_mtime;
 			struct tm mT;
@@ -397,7 +397,7 @@ void deleteNode_force(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [f] OP
 			printf("Left file in #%d : %s (%d-%02d-%02d %02d:%02d:%02d)\n\n", SET_IDX+1, tmp->data, 
 					mT.tm_year+1900, mT.tm_mon+1, mT.tm_mday+1, mT.tm_hour, mT.tm_min, mT.tm_sec);
 		}
-		else{
+		else{ // if tmp is not REC_IDX -> remove
 			if(unlink(tmp->data)<0){
 				fprintf(stderr, "unlink error\n");
 				return;
@@ -429,13 +429,13 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OP
 	memset(trashDir, '\0', BUF_MAX);
 	sprintf(homeDir, "%s/%s/", "/home", pwd->pw_name);
 	printf("homeDir : %s\n", homeDir);
-	sprintf(trashDir, "%s", ".local/share/Trash/files");
+	sprintf(trashDir, "%s", ".local/share/Trash/files"); // "Trash" directory is always in /home/usrName/.local/share/Trash/files    
+														 // No matter user is root or not..
 	int fileCnt = scandir(trashDir, &namelist, NULL, alphasort);
 	int checkDup = 0;
 	int checkDupIDX;
 	char inTrashfile[PATH_MAX-256];
 	while(tmp != NULL){
-		printf("DEBUG : start\n");
 		if(i == REC_IDX){
 			lstat(tmp->data, &st);
 			time_t mt = st.st_mtime;
@@ -500,9 +500,7 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OP
 		}
 		i++;
 		tmp = tmp->next;
-		printf("DEBUG : end\n");
 	}
-	printf("end of deleteNode_trash()\n");
 	return;
 }
 /***************/
@@ -521,14 +519,10 @@ int get_dupList(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regLis
 		if(strlen(Target_dir) > 1){
 			char ptr[PATH_MAX];
 			strcpy(ptr, &Target_dir[2]);
-//			sprintf(Target_dir, "%s/%s", "/home/sangjun", ptr);
 			sprintf(Target_dir, "%s/%s", pwd->pw_dir, ptr);
-			printf("changed Target_dir : %s\n", Target_dir);
 		}
 		else{
-//			sprintf(Target_dir, "%s", "/home/sangjun");
 			sprintf(Target_dir, "%s", pwd->pw_dir);
-			printf("changed Target_dir : %s\n", Target_dir);
 		}
 	}
 	
@@ -577,7 +571,7 @@ void check_targetDir(char* Ext, char* Target_dir){
 
 }
 
-int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet){
+int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet){ // return length of dupSet
 
 	int dupset_Count = 0;
 	Queue dir_queue;
@@ -629,7 +623,7 @@ int BFS(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue,
 					enqueue(&dir_queue, tmp_path); // other direcory -> enqueue to Queue(directory)
 				}
 			}
-			else if(S_ISREG(st.st_mode)){
+			else if(S_ISREG(st.st_mode)){ // if regular file
 				int condition = 0;
 				condition += check_ext(Ext, tmp_path); // if condition == 0 -> meet [FILE_EXTENSION] condition
 				condition += check_size(Min, Max, tmp_path); // if condition == 0 -> meet [MIN], [MAX] condition
@@ -842,7 +836,7 @@ void print_queue(Queue* queue){
 }
 
 
-void sort_dupSet(Queue* dupSet, int k){
+void sort_dupSet(Queue* dupSet, int k){ // Sorting dupSet -> bubble sort
 	for(int i=k; i>0; i--){
 		for(int j=0; j<i-1; j++){
 			if(dupSet[j].front->size > dupSet[j+1].front->size){
@@ -855,7 +849,7 @@ void sort_dupSet(Queue* dupSet, int k){
 	return;
 }
 
-char* toComma(long n, char* com_str){
+char* toComma(long n, char* com_str){ // if byte Size is more than 1000, put ','(comma) in every mod(3)
 	char str[FILE_SIZE];
 
 	sprintf(str, "%ld", n);
@@ -873,7 +867,8 @@ char* toComma(long n, char* com_str){
 }
 
 
-int get_recentIDX(Queue* dupSet, int SET_IDX) {
+int get_recentIDX(Queue* dupSet, int SET_IDX) { // for [f,] [t] OPTION :
+	// return most recently modified file's Index
 	int REC_IDX = 1;
 	int checkIDX = 1;
 	struct stat st;
@@ -978,16 +973,16 @@ int t_delete(int SET_IDX, Queue* dupSet, int k){
 
 	REC_IDX = get_recentIDX(dupSet, SET_IDX-1);
 	deleteNode_trash(dupSet, SET_IDX-1, REC_IDX, k);
-	if(SET_IDX == k){
+	if(SET_IDX == k){ // SET_IDX == last index of dupSet
 		initQueue(&dupSet[SET_IDX]);
 	}
-	else{
+	else{ // SET_IDX != last index of dupSet
 		for(int i=SET_IDX-1; i<k; i++){
 			dupSet[i] = dupSet[i+1];
 		}
 		initQueue(&dupSet[k]);
 	}
 
-	return k-1;
+	return k-1; // remaining file count must be 1 -> removed from dupSet
 }
 
