@@ -509,6 +509,11 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OP
 
 
 int get_dupList(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regList_queue, Queue* dupSet){
+	struct passwd* pwd;
+	if((pwd = getpwuid(getuid())) == NULL){
+		fprintf(stderr, "getpwuid error\n");
+		exit(1);
+	}
 	int dupset_Count = 0; // RegularFile_dupList count => return value
 	char realPath[PATH_MAX];
 	memset(realPath, '\0', PATH_MAX);
@@ -516,11 +521,13 @@ int get_dupList(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regLis
 		if(strlen(Target_dir) > 1){
 			char ptr[PATH_MAX];
 			strcpy(ptr, &Target_dir[2]);
-			sprintf(Target_dir, "%s/%s", "/home/sangjun", ptr);
+//			sprintf(Target_dir, "%s/%s", "/home/sangjun", ptr);
+			sprintf(Target_dir, "%s/%s", pwd->pw_dir, ptr);
 			printf("changed Target_dir : %s\n", Target_dir);
 		}
 		else{
-			sprintf(Target_dir, "%s", "/home/sangjun");
+//			sprintf(Target_dir, "%s", "/home/sangjun");
+			sprintf(Target_dir, "%s", pwd->pw_dir);
 			printf("changed Target_dir : %s\n", Target_dir);
 		}
 	}
