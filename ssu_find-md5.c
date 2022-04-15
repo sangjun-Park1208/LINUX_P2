@@ -239,7 +239,7 @@ char* dequeue(Queue* queue, char* data){
 	return data;
 }
 
-int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){
+int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [d] OPTION
 	int t = k;
 	Node* tmp;
 
@@ -289,7 +289,7 @@ int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 	return t;
 }
 
-int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){
+int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [i] OPTION
 	int t = k;
 	Node* cur, *tmp;
 	int input;
@@ -382,12 +382,12 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){
 }
 
 
-void deleteNode_force(Queue* dupSet, int SET_IDX, int REC_IDX, int k){
+void deleteNode_force(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [f] OPTION
 	Node* tmp = dupSet[SET_IDX].front;
 	int i=1;
 	struct stat st;
 
-	while(dupSet[SET_IDX].count > 1){
+	while(tmp != NULL){
 		if(i == REC_IDX){
 			lstat(tmp->data, &st);
 			time_t mt = st.st_mtime;
@@ -412,11 +412,11 @@ void deleteNode_force(Queue* dupSet, int SET_IDX, int REC_IDX, int k){
 }
 	
 
-void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){
+void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OPTION
 	Node* tmp = dupSet[SET_IDX].front;
 	int i=1;
 	struct stat st;
-	char tmpPath[PATH_MAX];
+	char tmpPath[PATH_MAX+512];
 	struct dirent** namelist;
 	struct passwd* pwd;
 	if((pwd = getpwuid(getuid())) == NULL){
@@ -427,13 +427,15 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){
 	char trashDir[BUF_MAX-128];
 	memset(homeDir, '\0', BUF_MAX);
 	memset(trashDir, '\0', BUF_MAX);
-	sprintf(homeDir, "%s/", pwd->pw_dir);
-	sprintf(trashDir,"%s%s", homeDir, ".local/share/Trash/files/");
+	sprintf(homeDir, "%s/%s/", "/home", pwd->pw_name);
+	printf("homeDir : %s\n", homeDir);
+	sprintf(trashDir, "%s", ".local/share/Trash/files");
 	int fileCnt = scandir(trashDir, &namelist, NULL, alphasort);
 	int checkDup = 0;
 	int checkDupIDX;
 	char inTrashfile[PATH_MAX-256];
-	while(dupSet[SET_IDX].count > 1){
+	while(tmp != NULL){
+		printf("DEBUG : start\n");
 		if(i == REC_IDX){
 			lstat(tmp->data, &st);
 			time_t mt = st.st_mtime;
@@ -444,10 +446,10 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){
 					mT.tm_year+1900, mT.tm_mon+1, mT.tm_mday+1, mT.tm_hour, mT.tm_min, mT.tm_sec);
 		}
 		else{
-			for(int i=0; i<fileCnt; i++){
+			for(int j=0; j<fileCnt; j++){
 				if(!strcmp(namelist[i]->d_name, strrchr(tmp->data, '/')+1)){ // if filename is same
 					checkDup = 1;
-					checkDupIDX = i;
+					checkDupIDX = j;
 					break;
 				}
 			}
@@ -455,7 +457,7 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){
 				// compare hash value
 				memset(hashVal, '\0', HASH_SIZE);
 				memset(inTrashfile, '\0', BUF_MAX);
-				sprintf(inTrashfile, "%s%s", trashDir, namelist[checkDupIDX]->d_name);
+				sprintf(inTrashfile, "%s%s", homeDir, namelist[checkDupIDX]->d_name);
 				FILE* IN;
 				if((IN = fopen(inTrashfile, "r")) == NULL){
 					fprintf(stderr, "fopen error in enqueue function\n");
@@ -471,7 +473,7 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){
 						return;
 					}
 					if(rename(tmp->data, inTrashfile) < 0){ // and move file to Trash Directory
-						fprintf(stderr, "rename error\n");
+						fprintf(stderr, "rename error 1\n");
 						return;
 					}
 				}
@@ -480,21 +482,27 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){
 					memset(reName, '\0', PATH_MAX);
 					sprintf(reName, "%s_copy", tmp->data); // make file A -> A_copy
 					if(rename(tmp->data, reName) < 0){ // then move A to Trash Directory
-						fprintf(stderr, "rename error\n");
+						fprintf(stderr, "rename error 2 \n");
 						return;
 					}
 				}
+				checkDup = 0;
 			}
 			else{ // No same filename in Trash directory
+
+				sprintf(tmpPath, "%s%s/%s", homeDir,trashDir, strrchr(tmp->data, '/')+1);
+				printf("tmpPath : %s\n", tmpPath);
 				if(rename(tmp->data, tmpPath) < 0){
-					fprintf(stderr, "rename error\n");
+					fprintf(stderr, "rename error 3\n");
 					return;
 				}
 			}
 		}
 		i++;
 		tmp = tmp->next;
+		printf("DEBUG : end\n");
 	}
+	printf("end of deleteNode_trash()\n");
 	return;
 }
 /***************/
