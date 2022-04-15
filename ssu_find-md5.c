@@ -424,13 +424,15 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OP
 		return;
 	}
 	char homeDir[BUF_MAX-256];
-	char trashDir[BUF_MAX-128];
-	memset(homeDir, '\0', BUF_MAX);
+	char trash[30];
+	char trashDir[BUF_MAX];
+	memset(homeDir, '\0', BUF_MAX-256);
+	memset(trash, '\0', 30);
 	memset(trashDir, '\0', BUF_MAX);
 	sprintf(homeDir, "%s/%s/", "/home", pwd->pw_name);
-	printf("homeDir : %s\n", homeDir);
-	sprintf(trashDir, "%s", ".local/share/Trash/files"); // "Trash" directory is always in /home/usrName/.local/share/Trash/files    
-														 // No matter user is root or not..
+//	printf("homeDir : %s\n", homeDir);
+	sprintf(trash, "%s", ".local/share/Trash/files"); // "Trash" directory is always in /home/usrName/.local/share/Trash/files    
+	sprintf(trashDir, "%s%s", homeDir, trash);		  // No matter user is root or not..
 	int fileCnt = scandir(trashDir, &namelist, NULL, alphasort);
 	int checkDup = 0;
 	int checkDupIDX;
@@ -457,7 +459,7 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OP
 				// compare hash value
 				memset(hashVal, '\0', HASH_SIZE);
 				memset(inTrashfile, '\0', BUF_MAX);
-				sprintf(inTrashfile, "%s%s", homeDir, namelist[checkDupIDX]->d_name);
+				sprintf(inTrashfile, "%s%s", trashDir, namelist[checkDupIDX]->d_name);
 				FILE* IN;
 				if((IN = fopen(inTrashfile, "r")) == NULL){
 					fprintf(stderr, "fopen error in enqueue function\n");
@@ -479,7 +481,7 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OP
 				}
 				else{ // if filename is same && hash value is different
 					char reName[PATH_MAX+256];
-					memset(reName, '\0', PATH_MAX);
+					memset(reName, '\0', PATH_MAX+256);
 					sprintf(reName, "%s_copy", tmp->data); // make file A -> A_copy
 					if(rename(tmp->data, reName) < 0){ // then move A to Trash Directory
 						fprintf(stderr, "rename error 2 \n");
@@ -490,8 +492,8 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OP
 			}
 			else{ // No same filename in Trash directory
 
-				sprintf(tmpPath, "%s%s/%s", homeDir,trashDir, strrchr(tmp->data, '/')+1);
-				printf("tmpPath : %s\n", tmpPath);
+				sprintf(tmpPath, "%s/%s", trashDir, strrchr(tmp->data, '/')+1);
+//				printf("tmpPath : %s\n", tmpPath);
 				if(rename(tmp->data, tmpPath) < 0){
 					fprintf(stderr, "rename error 3\n");
 					return;

@@ -427,7 +427,7 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OP
 	char trash[30];
 	char trashDir[BUF_MAX];
 	memset(homeDir, '\0', BUF_MAX-256);
-	memset(trash, '\0', BUF_MAX-128);
+	memset(trash, '\0', 30);
 	memset(trashDir, '\0', BUF_MAX);
 	sprintf(homeDir, "%s/%s/", "/home", pwd->pw_name);
 	printf("homeDir : %s\n", homeDir);
