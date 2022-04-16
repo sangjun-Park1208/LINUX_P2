@@ -413,6 +413,14 @@ void deleteNode_force(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [f] OP
 
 
 void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OPTION
+	int _uid = getuid();
+	if(getuid() == 0){
+		if(setuid(1000)<0){
+			fprintf(stderr, "setuid error\n");
+			return;
+		}
+	}
+
 	Node* tmp = dupSet[SET_IDX].front;
 	int i=1;
 	struct stat st;
@@ -430,7 +438,6 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OP
 	memset(trash, '\0', 30);
 	memset(trashDir, '\0', BUF_MAX);
 	sprintf(homeDir, "%s/%s/", "/home", pwd->pw_name);
-	printf("homeDir : %s\n", homeDir);
 	sprintf(trash, "%s", ".local/share/Trash/files"); // "Trash" directory is always in /home/usrName/.local/share/Trash/files
 	sprintf(trashDir, "%s%s", homeDir, trash);		  // No matter user is root or not..
 	int fileCnt = scandir(trashDir, &namelist, NULL, alphasort);
@@ -449,7 +456,7 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OP
 		}
 		else{
 			for(int j=0; j<fileCnt; j++){
-				if(!strcmp(namelist[i]->d_name, strrchr(tmp->data, '/')+1)){ // if filename is same
+				if(!strcmp(namelist[j]->d_name, strrchr(tmp->data, '/')+1)){ // if filename is same
 					checkDup = 1;
 					checkDupIDX = j;
 					break;
@@ -462,7 +469,7 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OP
 				sprintf(inTrashfile, "%s/%s", trashDir, namelist[checkDupIDX]->d_name);
 				FILE* IN;
 				if((IN = fopen(inTrashfile, "r")) == NULL){
-					fprintf(stderr, "fopen error in enqueue function\n");
+					fprintf(stderr, "fopen error in trash function\n");
 					printf("%s\n", strerror(errno));
 					return;
 				}
@@ -493,7 +500,6 @@ void deleteNode_trash(Queue* dupSet, int SET_IDX, int REC_IDX, int k){ // [t] OP
 			else{ // No same filename in Trash directory
 
 				sprintf(tmpPath, "%s/%s", trashDir, strrchr(tmp->data, '/')+1);
-				printf("tmpPath : %s\n", tmpPath);
 				if(rename(tmp->data, tmpPath) < 0){
 					fprintf(stderr, "rename error 3\n");
 					return;
