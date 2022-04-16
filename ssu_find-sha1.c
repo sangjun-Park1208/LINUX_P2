@@ -248,6 +248,7 @@ int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [d] OPTION
 			fprintf(stderr, "unlink error\n");
 			return k;
 		}
+		printf("\"%s\" has been deleted in #%d\n\n", queue[SET_IDX].front->data, LIST_IDX);
 		tmp = queue[SET_IDX].front;
 		queue[SET_IDX].front = queue[SET_IDX].front->next;
 		queue[SET_IDX].count--;
@@ -259,6 +260,7 @@ int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [d] OPTION
 			fprintf(stderr, "unlink error\n");
 			return k;
 		}
+		printf("\"%s\" has been deleted in #%d\n\n", queue[SET_IDX].rear->data, LIST_IDX);
 		tmp = queue[SET_IDX].rear;
 		queue[SET_IDX].rear = queue[SET_IDX].rear->prev;
 		queue[SET_IDX].rear->next = NULL;
@@ -278,6 +280,7 @@ int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [d] OPTION
 			fprintf(stderr, "unlink error\n");
 			return k;
 		}
+		printf("\"%s\" has been deleted in #%d\n\n", tmp->data, LIST_IDX);
 		tmp->prev->next = tmp->next;
 		tmp->next->prev = tmp->prev;
 		queue[SET_IDX].count--;
@@ -375,6 +378,7 @@ int deleteNode_ask(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [i] OPTIO
 			continue;
 	}
 
+	printf("\n");
 	if(queue[SET_IDX].count == 1 || queue[SET_IDX].count == 0) // if remaining Node count is 1 || 0 -> remove this Set from dupSet
 		t--;
 
