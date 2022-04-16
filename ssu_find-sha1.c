@@ -248,7 +248,7 @@ int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [d] OPTION
 			fprintf(stderr, "unlink error\n");
 			return k;
 		}
-		printf("\"%s\" has been deleted in #%d\n\n", queue[SET_IDX].front->data, SET_IDX);
+		printf("\"%s\" has been deleted in #%d\n\n", queue[SET_IDX].front->data, SET_IDX+1);
 		tmp = queue[SET_IDX].front;
 		queue[SET_IDX].front = queue[SET_IDX].front->next;
 		queue[SET_IDX].count--;
@@ -260,7 +260,7 @@ int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [d] OPTION
 			fprintf(stderr, "unlink error\n");
 			return k;
 		}
-		printf("\"%s\" has been deleted in #%d\n\n", queue[SET_IDX].rear->data, SET_IDX);
+		printf("\"%s\" has been deleted in #%d\n\n", queue[SET_IDX].rear->data, SET_IDX+1);
 		tmp = queue[SET_IDX].rear;
 		queue[SET_IDX].rear = queue[SET_IDX].rear->prev;
 		queue[SET_IDX].rear->next = NULL;
@@ -280,7 +280,7 @@ int deleteNode(Queue* queue, int SET_IDX, int LIST_IDX, int k){ // [d] OPTION
 			fprintf(stderr, "unlink error\n");
 			return k;
 		}
-		printf("\"%s\" has been deleted in #%d\n\n", tmp->data, SET_IDX);
+		printf("\"%s\" has been deleted in #%d\n\n", tmp->data, SET_IDX+1);
 		tmp->prev->next = tmp->next;
 		tmp->next->prev = tmp->prev;
 		queue[SET_IDX].count--;
