@@ -97,7 +97,9 @@ int main(int argc, char* argv[]){
 //	printf("DIFF_FILE : %d\n", DIF_FILE); // number of different file count
 	gettimeofday(&endTime, NULL);
 	printf("Searching time: %ld:%llu(sec:usec)\n\n", endTime.tv_sec - startTime.tv_sec, (unsigned long long)endTime.tv_usec - (unsigned long long)startTime.tv_usec);
-
+	if(k == 0){
+		exit(0);
+	}
 
 
 // delete option //
@@ -555,6 +557,9 @@ int get_dupList(char* Ext, char* Min, char* Max, char* Target_dir, Queue* regLis
 			exit(1);
 		}
 		dupset_Count = BFS(Ext, Min, Max, realPath, regList_queue, dupSet); // start BFS with real path
+	}
+	if(dupset_Count == 0){
+		printf("No duplicates in %s\n", realPath);
 	}
 
 	return dupset_Count;
